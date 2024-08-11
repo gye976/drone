@@ -1,0 +1,97 @@
+#ifndef TIMER_H
+#define TIMER_H
+
+#include <time.h>
+
+#include "globals.h"
+
+#define SEC_TO_NSEC     1000000000ULL
+
+static inline void update_new_mono_time(struct timespec *ts)
+{
+    if (clock_gettime(CLOCK_MONOTONIC, ts) != 0) {
+        exit_program();
+    }
+}
+static inline void update_new_cpu_time(struct timespec *ts)
+{
+    if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, ts) != 0) {
+        exit_program();
+    }
+}
+static inline float time_to_float(long s, long ns)
+{
+    return (float)(s * SEC_TO_NSEC + ns) / 1000000000.0f;
+}
+
+class Time
+{
+public:
+    inline void update_pre_time()
+    {
+        update_new_mono_time(&_ts_mono_pre);
+        update_new_cpu_time(&_ts_cpu_pre);
+    }
+    inline void update_cur_time() 
+    {
+        update_new_mono_time(&_ts_mono_cur);
+        update_new_cpu_time(&_ts_cpu_cur);
+    }
+    inline float get_mono_dt() 
+    {
+        long mono_s = _ts_mono_cur.tv_sec - _ts_mono_pre.tv_sec; 
+        long mono_ns = _ts_mono_cur.tv_nsec - _ts_mono_pre.tv_nsec;
+        
+        return time_to_float(mono_s, mono_ns);
+    }
+    inline float get_cpu_dt() 
+    {
+        long cpu_s = _ts_cpu_cur.tv_sec - _ts_cpu_pre.tv_sec; 
+        long cpu_ns = _ts_cpu_cur.tv_nsec - _ts_cpu_pre.tv_nsec;
+        
+        return time_to_float(cpu_s, cpu_ns);
+    }
+
+private:
+    struct timespec _ts_mono_cur;
+    struct timespec _ts_mono_pre;
+
+    struct timespec _ts_cpu_cur;
+    struct timespec _ts_cpu_pre;
+};
+
+#define trace_func_dt(time, func, ...) \
+do { \
+    time.update_pre_time(); \
+    func(__VA_ARGS__); \
+    time.update_cur_time(); \
+} while(0)
+
+class DtTrace 
+{
+public:
+    DtTrace(int n);
+    ~DtTrace();
+
+    void ff();
+
+private:
+    float *_mono_dt;
+    float *_cpu_dt;
+    
+    long *_mono_s;
+    long *_mono_ns;
+
+    int _n;
+
+    int _i;
+    float _dt_min;
+    float _dt_max;
+
+    Time _time;
+};
+
+
+
+#endif 
+
