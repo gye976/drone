@@ -85,6 +85,8 @@ void Pid::do_cascade_pid(int axis, float angle_in, float rate_in, float *angle_t
 
 	*angle_error = *angle_target - angle_in;
 	*rate_error = *rate_target - rate_in;
+
+	log_data();
 }
 
 void Pid::log_data()

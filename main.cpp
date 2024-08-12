@@ -32,6 +32,11 @@ int main()
 	g_threads[0] = make_user_front_thread(&g_drone);
 	g_threads[1] = make_drone_thread(&g_drone);
 
+	if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
+		perror("mlockall\n");
+		exit_program();
+	}
+
 	for (int i = 0; i < 2; i++) {
         if (pthread_join(g_threads[i], NULL) != 0) {
 			fprintf(stderr, "threads[%d], ", i);

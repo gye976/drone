@@ -39,9 +39,14 @@ void Drone::loop()
     //     exit_program();
     // }
 
+	struct timespec ts_mono_cur;
+	struct timespec ts_mono_prev;
+	
 	size_t cycle = 0;
 	while (1)
 	{
+		update_new_mono_time(&ts_mono_prev);
+
 		ADD_LOG(mpu6050, "%zu ", cycle);
 
 		_mpu6050.do_mpu6050();
@@ -58,12 +63,15 @@ void Drone::loop()
 		set_motor_speed();
 
 		log_data();
-
-		ADD_LOG(mpu6050, "\n");
 		
 		unlock_drone();
 
 		cycle++;
+
+		ADD_LOG(mpu6050, "\n");
+		update_new_mono_time(&ts_mono_cur);
+		float dt = timespec_to_float(&ts_mono_cur) - timespec_to_float(&ts_mono_prev);
+		ADD_LOG(dt, "%f\n", dt);
 	}
 }
 void Drone::set_hovering()
@@ -154,10 +162,6 @@ void Drone::print_parameter()
 void* drone_loop(void *drone)
 {
 //	init_user_front(drone);
-	if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
-		perror("mlockall\n");
-		exit_program();
-	}
 
 	((Drone*)drone)->loop();
 

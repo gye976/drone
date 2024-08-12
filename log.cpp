@@ -40,6 +40,7 @@ static Pool s_pool(14);
 
 Log g_mpu6050_log("mpu6050");
 Log g_pid_log("pid");
+Log g_dt_log("dt");
 
 Log::Log(const char *filename)
 {
@@ -77,10 +78,10 @@ void Log::add_log(const char *format, ...)
 	_aiocb[_num].aio_buf = ptr;
 	_aiocb[_num].aio_nbytes = len;
 	
-    if (aio_write(&_aiocb[_num]) != 0) {
-        perror("aio_write err");
-        exit_program();
-    }
+    // if (aio_write(&_aiocb[_num]) != 0) {
+    //     perror("aio_write err");
+    //     exit_program();
+    // }
 
     //printf("len:%d, _offset:%d, _num:%d\n", len, _offset, _num, (const char*)ptr);
     //printf("%s\n", (const char*)ptr);
