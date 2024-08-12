@@ -28,41 +28,41 @@ static inline float timespec_to_float(struct timespec *ts)
     return time_to_float(ts->tv_sec, ts->tv_nsec);
 }
 
-class Time
-{
-public:
-    inline void update_pre_time()
-    {
-        update_new_mono_time(&_ts_mono_prev);
-        update_new_cpu_time(&_ts_cpu_prev);
-    }
-    inline void update_cur_time() 
-    {
-        update_new_mono_time(&_ts_mono_cur);
-        update_new_cpu_time(&_ts_cpu_cur);
-    }
-    inline float get_mono_dt() 
-    {
-        long mono_s = _ts_mono_cur.tv_sec - _ts_mono_prev.tv_sec; 
-        long mono_ns = _ts_mono_cur.tv_nsec - _ts_mono_prev.tv_nsec;
+// class Time
+// {
+// public:
+//     inline void update_pre_time()
+//     {
+//         update_new_mono_time(&_ts_mono_prev);
+//         update_new_cpu_time(&_ts_cpu_prev);
+//     }
+//     inline void update_cur_time() 
+//     {
+//         update_new_mono_time(&_ts_mono_cur);
+//         update_new_cpu_time(&_ts_cpu_cur);
+//     }
+//     inline float get_mono_dt() 
+//     {
+//         long mono_s = _ts_mono_cur.tv_sec - _ts_mono_prev.tv_sec; 
+//         long mono_ns = _ts_mono_cur.tv_nsec - _ts_mono_prev.tv_nsec;
         
-        return time_to_float(mono_s, mono_ns);
-    }
-    inline float get_cpu_dt() 
-    {
-        long cpu_s = _ts_cpu_cur.tv_sec - _ts_cpu_prev.tv_sec; 
-        long cpu_ns = _ts_cpu_cur.tv_nsec - _ts_cpu_prev.tv_nsec;
+//         return time_to_float(mono_s, mono_ns);
+//     }
+//     inline float get_cpu_dt() 
+//     {
+//         long cpu_s = _ts_cpu_cur.tv_sec - _ts_cpu_prev.tv_sec; 
+//         long cpu_ns = _ts_cpu_cur.tv_nsec - _ts_cpu_prev.tv_nsec;
         
-        return time_to_float(cpu_s, cpu_ns);
-    }
+//         return time_to_float(cpu_s, cpu_ns);
+//     }
 
-private:
-    struct timespec _ts_mono_cur;
-    struct timespec _ts_mono_prev;
+// private:
+//     struct timespec _ts_mono_cur;
+//     struct timespec _ts_mono_prev;
 
-    struct timespec _ts_cpu_cur;
-    struct timespec _ts_cpu_prev;
-};
+//     struct timespec _ts_cpu_cur;
+//     struct timespec _ts_cpu_prev;
+// };
 
 #define trace_func_dt(time, func, ...) \
 do { \
@@ -92,7 +92,11 @@ private:
     float _dt_min;
     float _dt_max;
 
-    Time _time;
+    struct timespec _ts_mono_cur;
+    struct timespec _ts_mono_prev;
+
+    struct timespec _ts_cpu_cur;
+    struct timespec _ts_cpu_prev;
 };
 
 

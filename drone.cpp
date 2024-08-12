@@ -13,11 +13,11 @@
 Drone::Drone()
 	: _pwm{Pwm(1), Pwm(2), Pwm(3), Pwm(4)}
 {
-	pthread_spin_init(&_spinlock, PTHREAD_PROCESS_PRIVATE);
+	pthread_mutex_init(&_mutex, NULL);
 }
 Drone::~Drone()
 {
-	pthread_spin_destroy(&_spinlock);
+	pthread_mutex_destroy(&_mutex);
 }
 
 void Drone::loop()
@@ -55,15 +55,16 @@ void Drone::loop()
 		// 목표각 설정.
 		//	타겟을 롤, 피치는 0로 지정 (자세제어)
 		//	쓰로틀,요우는 따로 지정 (일단 yaw는 항상 오차가 0이도록 설정)
-	
+
 		set_hovering();
 		// update_target();
 
 		update_pid_out(angle, gyro_rate);
+
 		set_motor_speed();
 
 		log_data();
-		
+
 		unlock_drone();
 
 		cycle++;
@@ -72,6 +73,8 @@ void Drone::loop()
 		update_new_mono_time(&ts_mono_cur);
 		float dt = timespec_to_float(&ts_mono_cur) - timespec_to_float(&ts_mono_prev);
 		ADD_LOG(dt, "%f\n", dt);
+
+		FLUSH_LOG();
 	}
 }
 void Drone::set_hovering()

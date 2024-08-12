@@ -61,13 +61,28 @@ public:
     {
         return &_pid;
     }
+    // inline int try_lock_drone()
+    // {
+    //     int ret = pthread_spin_trylock(&_spinlock);
+    //     printf("lock ret:%d\n", ret);
+        
+    //     return ret;
+    // }
     inline void lock_drone()
     {
-        pthread_spin_lock(&_spinlock);
+        int ret = pthread_mutex_lock(&_mutex);
+        if (unlikely(ret) != 0) {
+            perror("lock_drone err");
+            exit_program();
+        }
     }
     inline void unlock_drone()
-    {
-        pthread_spin_unlock(&_spinlock);
+    {   
+        int ret = pthread_mutex_unlock(&_mutex);
+        if (unlikely(ret) != 0) {
+            perror("unlock_drone err");
+            exit_program();
+        }
     }
     inline void set_throttle(int t)
     {
@@ -113,7 +128,7 @@ private:
     Pid _pid;
     //Time _time;
 
-    pthread_spinlock_t _spinlock;
+    pthread_mutex_t _mutex;
 
     bool _pr_mpu6050_f = false; 
     bool _pr_pid_f = false;

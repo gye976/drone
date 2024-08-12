@@ -47,14 +47,10 @@ void resume_user(Drone *drone)
 
 int scan_str(char *buf)
 {
-	//pause();
-
 	int ret = 0;
 	if (scanf("%s", buf) <= 0) {
 		ret = -1;
 	}
-
-	//resume();
 
 	return ret;
 }
@@ -94,14 +90,15 @@ void cmd_throttle(Drone *drone)
 	}
 
 	int t = atoi(buf);
-	// if (t == 0) {
-	// 	printf("arg err\n");
-	// 	return;
-	// }
+	if (t == 0) {
+		printf("arg err\n");
+		goto ERR;
+	}
 	printf("throttle: %d\n", t);
 
 	drone->set_throttle(t);
-	
+
+ERR:
 	resume_user(drone);
 }
 
@@ -110,6 +107,7 @@ void cmd_pid(Drone *drone)
 	pause_user(drone);
 
 	drone->get_pid()->read_meta_file();
+
 	// char buf[50];
 	// if (scan_str(buf) == -1) {
 	// 	printf("arg err\n");
@@ -145,6 +143,7 @@ void cmd_pid(Drone *drone)
 	// s_drone->get_pid()->update_para(para);
 
 	resume_user(drone);
+
 	return;
 
 // ERR:

@@ -48,13 +48,8 @@ void __exit_program()
         exit_func[i]();
     }
 
-	// for (int i = 0; i < 2; i++) {
-    //     if (pthread_join(g_threads[i], NULL) != 0) {
-	// 		fprintf(stderr, "threads[%d], ", i);
-	// 		perror("Failed to join thread");
-    //     }
-	// } // aio_suspend로 바꿔야 함. 이를 위해선 aio풀을 사용중,미사용 두가지로 구현해야 함
-
+	// aio?
+	
     exit(0);
 }
 

@@ -12,7 +12,7 @@
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
-#define OPEN_FD(fd, path, ...)                 \
+#define OPEN_FD(fd, path, ...)                  \
 	do                                          \
 	{                                           \
 		fd = open(path, ##__VA_ARGS__);         \
@@ -25,15 +25,15 @@
 		}                                       \
 	} while (0)
 
-#define INIT_EXIT(type)                           \
-	type *exit_##type##_func[20] = {              \
-		0,                                        \
-	};                                            \
-	int exit_##type##_i = 0;                      \
-	void __exit_##type()                          \
-	{                                             \
-		for (int i = 0; i < exit_##type##_i; i++) \
-			exit_##type(exit_##type##_func[i]);   \
+#define INIT_EXIT(type)                           		\
+	type *exit_##type##_func[20] = {              		\
+		0,                                        		\
+	};                                            		\
+	int exit_##type##_i = 0;                      		\
+	void __exit_##type()                          		\
+	{                                             		\
+		for (int i__ = 0; i__ < exit_##type##_i; i__++) \
+			exit_##type(exit_##type##_func[i__]);   	\
 	}
 
 #define ADD_EXIT(type)                            \
