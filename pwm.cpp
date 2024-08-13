@@ -5,8 +5,6 @@
 
 void exit_Pwm(Pwm *pwm)
 {
-	printf("exit_pwm\n");
-
 	if (-1 == write(pwm->_duty_cycle_fd, "1000000", strlen("1000000")))
 	{
 		perror("exit_pwm fail");

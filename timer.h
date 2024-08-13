@@ -28,47 +28,11 @@ static inline float timespec_to_float(struct timespec *ts)
     return time_to_float(ts->tv_sec, ts->tv_nsec);
 }
 
-// class Time
-// {
-// public:
-//     inline void update_pre_time()
-//     {
-//         update_new_mono_time(&_ts_mono_prev);
-//         update_new_cpu_time(&_ts_cpu_prev);
-//     }
-//     inline void update_cur_time() 
-//     {
-//         update_new_mono_time(&_ts_mono_cur);
-//         update_new_cpu_time(&_ts_cpu_cur);
-//     }
-//     inline float get_mono_dt() 
-//     {
-//         long mono_s = _ts_mono_cur.tv_sec - _ts_mono_prev.tv_sec; 
-//         long mono_ns = _ts_mono_cur.tv_nsec - _ts_mono_prev.tv_nsec;
-        
-//         return time_to_float(mono_s, mono_ns);
-//     }
-//     inline float get_cpu_dt() 
-//     {
-//         long cpu_s = _ts_cpu_cur.tv_sec - _ts_cpu_prev.tv_sec; 
-//         long cpu_ns = _ts_cpu_cur.tv_nsec - _ts_cpu_prev.tv_nsec;
-        
-//         return time_to_float(cpu_s, cpu_ns);
-//     }
-
-// private:
-//     struct timespec _ts_mono_cur;
-//     struct timespec _ts_mono_prev;
-
-//     struct timespec _ts_cpu_cur;
-//     struct timespec _ts_cpu_prev;
-// };
-
-class DtTrace 
+class LogTime
 {
 public:
-    DtTrace(int n);
-    ~DtTrace();
+    LogTime(int n);
+    ~LogTime();
 
     inline void update_pre_time()
     {
@@ -102,13 +66,49 @@ private:
     struct timespec _ts_cpu_prev;
 };
 
+class DtTrace 
+{
+public:     
+    DtTrace();
+    ~DtTrace();
 
-#define trace_func_dt(dt, func, ...) \
+    inline void update_pre_time()
+    {
+        update_new_mono_time(&_ts_mono_prev);
+        update_new_cpu_time(&_ts_cpu_prev);
+    }
+    inline void update_cur_time() 
+    {
+        update_new_mono_time(&_ts_mono_cur);
+        update_new_cpu_time(&_ts_cpu_cur);
+    }
+    void print_data();
+    void update_data();
+
+private:
+    float _mono_dt_max = 0.0f;
+    float _mono_dt_min = 999999.0f;
+    float _mono_dt_mean = 0.0f;
+
+    float _cpu_dt_max = 0.0f;
+    float _cpu_dt_min = 999999.0f;
+    float _cpu_dt_mean = 0.0f;
+    
+    size_t _num = 0;
+
+    struct timespec _ts_mono_cur;
+    struct timespec _ts_mono_prev;
+
+    struct timespec _ts_cpu_cur;
+    struct timespec _ts_cpu_prev;
+};
+
+#define trace_func_dt(dt_trace, func, ...) \
 do { \
-    dt.update_pre_time(); \
+    dt_trace.update_pre_time(); \
     func(__VA_ARGS__); \
-    dt.update_cur_time(); \
-    dt.ff(); \
+    dt_trace.update_cur_time(); \
+    dt_trace.update_data(); \
 } while(0)
 
 

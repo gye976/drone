@@ -25,39 +25,40 @@
 		}                                       \
 	} while (0)
 
-#define INIT_EXIT(type)                           		\
-	type *exit_##type##_func[20] = {              		\
-		0,                                        		\
-	};                                            		\
-	int exit_##type##_i = 0;                      		\
-	void __exit_##type()                          		\
-	{                                             		\
-		for (int i__ = 0; i__ < exit_##type##_i; i__++) \
-			exit_##type(exit_##type##_func[i__]);   	\
-	}
-
-#define ADD_EXIT(type)                            \
-do                                                \
-{ \
-	extern void (*exit_func[20])();               \
-	extern int exit_i;                            \
-	extern type *exit_##type##_func[20];          \
-	extern int exit_##type##_i;                   \
-	static int __exit_i = 0;                      \
+#define INIT_EXIT(type) \
+	type *__exit_##type##_instance_list[20]; \
+	int __exit_##type##_instance_num = 0; \
 \
-	if (__exit_i == 0)                            \
-	{                                             \
-		exit_func[exit_i++] = __exit_##type;      \
-		__exit_i = 1;                             \
-	}                                             \
-	exit_##type##_func[exit_##type##_i++] = this; \
+	void __exit_##type##_global_func() \
+	{ \
+		printf("  exit_"#type" entry\n"); \
+		for (int i__ = 0; i__ < __exit_##type##_instance_num; i__++) { \
+			printf("    exit_"#type" instance%d entry\n", i__); \
+			exit_##type(__exit_##type##_instance_list[i__]); \
+			printf("    exit_"#type" instance%d exit\n\n", i__); \
+		} \
+	} 
+
+#define ADD_EXIT(type) \
+do { \
+	extern void (*g_exit_func_global_list[20])(); \
+	extern int g_exit_func_global_num; \
+	extern type *__exit_##type##_instance_list[20]; \
+	extern int __exit_##type##_instance_num; \
+	static bool __exit_flag = 0; \
+\
+	if (__exit_flag == 0) { \
+		g_exit_func_global_list[g_exit_func_global_num++] = __exit_##type##_global_func; \
+		__exit_flag = 1; \
+	} \
+	__exit_##type##_instance_list[__exit_##type##_instance_num++] = this; \
 } while (0)
+
 
 #define exit_program()                            \
 	extern void __exit_program();                 \
 	do                                            \
 	{                                             \
-		printf("\nexit_program\n");               \
 		printf("file:%s, func:%s, line:%d\n\n",   \
 			   __FILE__, __FUNCTION__, __LINE__); \
 		__exit_program();                         \

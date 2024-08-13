@@ -21,8 +21,6 @@
 
 void exit_Mpu6050(Mpu6050 *mpu6050)
 {
-	printf("exit_Mpu6050\n");
-
 	(void)mpu6050;
 }
 INIT_EXIT(Mpu6050);

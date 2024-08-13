@@ -10,8 +10,6 @@
 
 void exit_Pid(Pid *pid)
 {
-	printf("exit_Pid\n");
-
 	pid->print_parameter();
 	pid->write_meta_file();
 }

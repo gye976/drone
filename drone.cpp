@@ -25,8 +25,6 @@ void Drone::loop()
 	float *angle = _mpu6050.get_angle();
 	float *gyro_rate = _mpu6050.get_gyro_rate();
 
-	//DtTrace dt(100000);
-
 	// _mpu6050.set_irq_thread_high_priority();
 	// _mpu6050.calibrate(30);
 
@@ -39,17 +37,16 @@ void Drone::loop()
     //     exit_program();
     // }
 
-	struct timespec ts_mono_cur;
-	struct timespec ts_mono_prev;
+	DtTrace mpu_dt_trace;
 	
 	size_t cycle = 0;
 	while (1)
 	{
-		update_new_mono_time(&ts_mono_prev);
+		//update_new_mono_time(&ts_mono_prev);
 
 		ADD_LOG_ALL("%zu ", cycle);
 
-		_mpu6050.do_mpu6050();
+		trace_func_dt(mpu_dt_trace, _mpu6050.do_mpu6050);
 
 		lock_drone();
 		// 목표각 설정.
@@ -71,7 +68,7 @@ void Drone::loop()
 
 		ADD_LOG_ALL("\n");
 		
-		update_new_mono_time(&ts_mono_cur);
+		//update_new_mono_time(&ts_mono_cur);
 		//float dt = timespec_to_float(&ts_mono_cur) - timespec_to_float(&ts_mono_prev);
 		//ADD_LOG(dt, "%f\n", dt);
 

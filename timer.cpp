@@ -8,7 +8,51 @@
 #include "mpu6050.h"
 #include "globals.h"
 
-DtTrace::DtTrace(int n) 
+void exit_DtTrace(DtTrace *dt_trace)
+{
+    dt_trace->print_data();
+}
+INIT_EXIT(DtTrace);
+
+DtTrace::DtTrace()
+{
+    ADD_EXIT(DtTrace);
+}
+DtTrace::~DtTrace()
+{
+    print_data();
+}
+void DtTrace::print_data()
+{
+	printf("\nmono_dt_max:%f, cpu_dt_max:%f \nmono_dt_min:%f, cpu_dt_min:%f \nmono_dt_mean:%f, cpu_dt_mean:%f \n", 
+        _mono_dt_max, _cpu_dt_max, _mono_dt_min, _cpu_dt_min, _mono_dt_mean, _cpu_dt_mean);
+    printf("cycle:%zu", _num);
+}
+void DtTrace::update_data()
+{
+	float mono_dt =  timespec_to_float(&_ts_mono_cur) - timespec_to_float(&_ts_mono_prev);
+	float cpu_dt =  timespec_to_float(&_ts_cpu_cur) - timespec_to_float(&_ts_cpu_prev);
+
+    if (mono_dt > _mono_dt_max) { 
+        _mono_dt_max = mono_dt;
+    } else if (mono_dt < _mono_dt_min) {
+        _mono_dt_min = mono_dt;
+    }
+
+    if (cpu_dt > _cpu_dt_max) { 
+        _cpu_dt_max = cpu_dt;
+    } else if (cpu_dt < _cpu_dt_min) {
+        _cpu_dt_min = cpu_dt;
+    }
+
+    _num++;
+
+    _mono_dt_mean = (_mono_dt_mean * (_num - 1) + mono_dt) / _num; 
+    _cpu_dt_mean = (_cpu_dt_mean * (_num - 1) + cpu_dt) / _num; 
+}  
+
+
+LogTime::LogTime(int n) 
     : _n(n), _i(0), _dt_min(100.0f), _dt_max(0.0f)
 {
     _mono_dt = (float*)malloc(_n * sizeof(float));
@@ -17,7 +61,7 @@ DtTrace::DtTrace(int n)
     _mono_s = (long*)malloc(_n * sizeof(long));
     _mono_ns = (long*)malloc(_n * sizeof(long));
 }
-DtTrace::~DtTrace()
+LogTime::~LogTime()
 {
     free(_mono_dt);
     free(_cpu_dt);
@@ -25,7 +69,7 @@ DtTrace::~DtTrace()
     free(_mono_s);
     free(_mono_ns);
 }
-void DtTrace::ff()
+void LogTime::ff()
 {
 	_mono_dt[_i] =  timespec_to_float(&_ts_mono_cur) - timespec_to_float(&_ts_mono_prev);
 	_cpu_dt[_i] =  timespec_to_float(&_ts_cpu_cur) - timespec_to_float(&_ts_cpu_prev);

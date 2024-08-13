@@ -38,19 +38,21 @@ static void signal_handler(int signum) {
 
 static struct sigaction s_sa;
 
-void (*exit_func[20])();
-int exit_i = 0;
+void (*g_exit_func_global_list[20])();
+int g_exit_func_global_num = 0;
 
 extern pthread_t g_threads[2];
 void __exit_program()
 {    
-    for (int i = 0; i < exit_i; i++) {
-        exit_func[i]();
+	printf("exit_program entry\n");
+
+    for (int i = 0; i < g_exit_func_global_num; i++) {
+        g_exit_func_global_list[i]();
     }
 
-	// aio?
+	printf("exit_program exit\n");
 
-    exit(0);
+	exit(0);
 }
 
 void init_signal() 
