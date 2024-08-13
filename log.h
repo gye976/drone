@@ -4,6 +4,17 @@
 #include <arpa/inet.h>
 #include <aio.h>
 
+
+#define MULTICAST_ADDR "224.0.0.1"
+#define PORT 5007
+
+#define BUF_SIZE 1024            // 버퍼 크기
+#define	SERVER_IP 	"10.42.0.1"  // 서버 IP 주소
+#define	LOCAL_IP 	"10.42.0.187"
+
+#define TTL 1
+
+
 class Pool
 {
 public:
@@ -66,7 +77,9 @@ private:
 	int _buffer_idx = 0;
 
 	int _sockfd;
-    struct sockaddr_in _server_addr;
+    struct sockaddr_in _group_addr;
+    struct in_addr _local_ip;
+    int _ttl = TTL;
 };
 
 

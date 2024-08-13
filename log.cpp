@@ -1,8 +1,3 @@
-
-#define SERVER_PORT 8888         // 서버 포트 번호
-#define BUF_SIZE 1024            // 버퍼 크기
-#define SERVER_IP "10.42.0.1"  // 서버 IP 주소
-
 #include <arpa/inet.h>
 #include <stdarg.h>
 
@@ -32,15 +27,35 @@ Log::Log(const char *name)
 #endif
 
 #ifdef TO_SOCKET
-    if ((_sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
         perror("Socket creation failed");
         exit_program();
     }
+    // 송신자 로컬 IP 주소 설정
+    if (inet_aton(LOCAL_IP, &_local_ip) == 0) {
+        perror("inet_aton");
+        close(_sockfd);
+        exit(EXIT_FAILURE);
+    }
+	
+    if (setsockopt(_sockfd, IPPROTO_IP, IP_MULTICAST_IF, &_local_ip, sizeof(_local_ip)) < 0) {
+        perror("setsockopt (IP_MULTICAST_IF)");
+        close(_sockfd);
+        exit(EXIT_FAILURE);
+    }
 
-    memset(&_server_addr, 0, sizeof(_server_addr));
-    _server_addr.sin_family = AF_INET;
-    _server_addr.sin_port = htons(SERVER_PORT);
-    _server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    // 멀티캐스트 TTL 설정
+    if (setsockopt(_sockfd, IPPROTO_IP, IP_MULTICAST_TTL, &_ttl, sizeof(_ttl)) < 0) {
+        perror("setsockopt (IP_MULTICAST_TTL)");
+        close(_sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    // 멀티캐스트 주소 설정
+    memset(&_group_addr, 0, sizeof(_group_addr));
+    _group_addr.sin_family = AF_INET;
+    _group_addr.sin_addr.s_addr = inet_addr(MULTICAST_ADDR);
+    _group_addr.sin_port = htons(PORT);
 
 	add_log_queue("%s ", _name);
 #endif
@@ -104,7 +119,8 @@ void Log::write_log_file()
 
 void Log::write_log_socket()
 {
-	int ret = sendto(_sockfd, _buffer, _buffer_idx, 0, (const struct sockaddr *) &_server_addr, sizeof(_server_addr));
+	int ret = sendto(_sockfd, _buffer, _buffer_idx, 0, 
+		(const struct sockaddr *) &_group_addr, sizeof(_group_addr));
     if (unlikely(ret < 0)) {
         perror("Send failed");
 		exit_program();
