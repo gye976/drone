@@ -47,7 +47,7 @@ void Drone::loop()
 	{
 		update_new_mono_time(&ts_mono_prev);
 
-		ADD_LOG(mpu6050, "%zu ", cycle);
+		ADD_LOG_ALL("%zu ", cycle);
 
 		_mpu6050.do_mpu6050();
 
@@ -69,10 +69,11 @@ void Drone::loop()
 
 		cycle++;
 
-		ADD_LOG(mpu6050, "\n");
+		ADD_LOG_ALL("\n");
+		
 		update_new_mono_time(&ts_mono_cur);
-		float dt = timespec_to_float(&ts_mono_cur) - timespec_to_float(&ts_mono_prev);
-		ADD_LOG(dt, "%f\n", dt);
+		//float dt = timespec_to_float(&ts_mono_cur) - timespec_to_float(&ts_mono_prev);
+		//ADD_LOG(dt, "%f\n", dt);
 
 		FLUSH_LOG();
 	}
@@ -123,18 +124,6 @@ void Drone::log_data()
 	ADD_LOG_ARRAY(mpu6050, 3, "%f", angle_cur);
 	ADD_LOG_ARRAY(mpu6050, 3, "%f", _rate_target);
 	ADD_LOG_ARRAY(mpu6050, 3, "%f", rate_cur);
-	// if (_pr_mpu6050_f == true {
-	// 	_mpu6050.print_data();
-	// }
-
-	// if (_pr_pid_f == true) {
-	// 	_pid.print_data(PITCH);
-	// }
-
-	// if (_pr_pwm_f == true) {
-	// 	printf("pwm, pitch:%d, roll:%d, yaw:%d\n", _pitch, _roll, _yaw);
-	// 	printf("\n");	
-	// }
 }
 
 void Drone::update_pid_out(float *angle, float *gyro_rate)
@@ -164,8 +153,6 @@ void Drone::print_parameter()
 
 void* drone_loop(void *drone)
 {
-//	init_user_front(drone);
-
 	((Drone*)drone)->loop();
 
 	return NULL; // error
@@ -209,7 +196,7 @@ pthread_t make_drone_thread(Drone *drone)
 	struct sched_param param = {
 		.sched_priority = 99,
 	};
-	if (pthread_setschedparam(thread, SCHED_FIFO, &param) != 0)
+	if (pthread_setschedparam(thread, SCHED_RR, &param) != 0)
 	{
 		perror("make_drone_thread");
 		exit_program();

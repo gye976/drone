@@ -64,19 +64,22 @@ static inline float timespec_to_float(struct timespec *ts)
 //     struct timespec _ts_cpu_prev;
 // };
 
-#define trace_func_dt(time, func, ...) \
-do { \
-    time.update_pre_time(); \
-    func(__VA_ARGS__); \
-    time.update_cur_time(); \
-} while(0)
-
 class DtTrace 
 {
 public:
     DtTrace(int n);
     ~DtTrace();
 
+    inline void update_pre_time()
+    {
+        update_new_mono_time(&_ts_mono_prev);
+        update_new_cpu_time(&_ts_cpu_prev);
+    }
+    inline void update_cur_time() 
+    {
+        update_new_mono_time(&_ts_mono_cur);
+        update_new_cpu_time(&_ts_cpu_cur);
+    }
     void ff();
 
 private:
@@ -99,6 +102,14 @@ private:
     struct timespec _ts_cpu_prev;
 };
 
+
+#define trace_func_dt(dt, func, ...) \
+do { \
+    dt.update_pre_time(); \
+    func(__VA_ARGS__); \
+    dt.update_cur_time(); \
+    dt.ff(); \
+} while(0)
 
 
 #endif 

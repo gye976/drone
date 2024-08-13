@@ -20,6 +20,8 @@ DtTrace::DtTrace(int n)
 DtTrace::~DtTrace()
 {
     free(_mono_dt);
+    free(_cpu_dt);
+    
     free(_mono_s);
     free(_mono_ns);
 }

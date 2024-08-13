@@ -91,53 +91,39 @@ void Pid::do_cascade_pid(int axis, float angle_in, float rate_in, float *angle_t
 
 void Pid::log_data()
 {
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[0][0]); 
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[0][1]); 
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[0][2]); 
+	ADD_LOG_ARRAY(pid, 3, "%f", _term[0][0]); // 각도  피치
+	ADD_LOG_ARRAY(pid, 3, "%f", _term[0][1]);        // 롤 
+	ADD_LOG_ARRAY(pid, 3, "%f", _term[0][2]);    	 // 요
 
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[1][0]); 
+	ADD_LOG_ARRAY(pid, 3, "%f", _term[1][0]); // 자이로
 	ADD_LOG_ARRAY(pid, 3, "%f", _term[1][1]); 
 	ADD_LOG_ARRAY(pid, 3, "%f", _term[1][2]); 
 
-	float angle_abs_sum[3];
-	float angle_term_per[3][3];
+//	percent, 딱히 봐봤자 의미가없음
 
-	float rate_abs_sum[3];
-	float rate_term_per[3][3];
+	// float angle_abs_sum[3];
+	// float angle_term_per[3][3];
 
-	for (int i = 0; i < 3; i++) {
-		angle_abs_sum[i] = fabsf(_term[0][i][P]) + fabsf(_term[0][i][I]) + fabsf(_term[0][i][D]);
-		rate_abs_sum[i] = fabsf(_term[1][i][P]) + fabsf(_term[1][i][I]) + fabsf(_term[1][i][D]);	
+	// float rate_abs_sum[3];
+	// float rate_term_per[3][3];
+
+	// for (int i = 0; i < 3; i++) {
+	// 	angle_abs_sum[i] = fabsf(_term[0][i][P]) + fabsf(_term[0][i][I]) + fabsf(_term[0][i][D]);
+	// 	rate_abs_sum[i] = fabsf(_term[1][i][P]) + fabsf(_term[1][i][I]) + fabsf(_term[1][i][D]);	
 		
-		for (int j = 0; j < 3; j++) {
-			angle_term_per[i][j] = fabsf(_term[0][i][j] * 100.0f / angle_abs_sum[i]);
-			rate_term_per[i][j] = fabsf(_term[1][i][j] * 100.0f / rate_abs_sum[i]);
-		}
-	}
+	// 	for (int j = 0; j < 3; j++) {
+	// 		angle_term_per[i][j] = fabsf(_term[0][i][j] * 100.0f / angle_abs_sum[i]);
+	// 		rate_term_per[i][j] = fabsf(_term[1][i][j] * 100.0f / rate_abs_sum[i]);
+	// 	}
+	// }
 	 
-	ADD_LOG_ARRAY(pid, 3, "%f", angle_term_per[0]); 
-	ADD_LOG_ARRAY(pid, 3, "%f", angle_term_per[1]); 
-	ADD_LOG_ARRAY(pid, 3, "%f", angle_term_per[2]); 
+	//ADD_LOG_ARRAY(pid, 3, "%f", angle_term_per[0]); 
+	//ADD_LOG_ARRAY(pid, 3, "%f", angle_term_per[1]); 
+	//ADD_LOG_ARRAY(pid, 3, "%f", angle_term_per[2]); 
 
-	ADD_LOG_ARRAY(pid, 3, "%f", rate_term_per[0]); 
-	ADD_LOG_ARRAY(pid, 3, "%f", rate_term_per[1]); 
-	ADD_LOG_ARRAY(pid, 3, "%f", rate_term_per[2]); 
-
-	// // printf("angle term, p:%f, i:%f, d:%f, sum:%f\n", 
-	// // 	_term[0][axis][P], _term[0][axis][I], _term[0][axis][D], angle_sum);
-
-	// printf("%%, p:%f%%, i:%f%%, d:%f%%\n", 
-	// 	fabsf(_term[0][axis][P]) * 100 / angle_abs_sum, fabsf(_term[0][axis][I]) * 100 / angle_abs_sum, 
-	// 	fabsf(_term[0][axis][D]) * 100 / angle_abs_sum);  
-
-	// // printf("rate term, p:%f, i:%f, d:%f, sum:%f\n", 
-	// // 	_term[1][axis][P], _term[1][axis][I], _term[1][axis][D], rate_sum);
-
-	// printf("%%, p:%f%%, i:%f%%, d:%f%%\n", 
-	// 	fabsf(_term[1][axis][P]) * 100 / rate_abs_sum, fabsf(_term[1][axis][I]) * 100 / rate_abs_sum, 
-	// 	fabsf(_term[1][axis][D]) * 100 / rate_abs_sum);
-
-	// printf("\n");
+	//ADD_LOG_ARRAY(pid, 3, "%f", rate_term_per[0]); 
+	//ADD_LOG_ARRAY(pid, 3, "%f", rate_term_per[1]); 
+	//ADD_LOG_ARRAY(pid, 3, "%f", rate_term_per[2]); 
 }
 
 void Pid::read_meta_file()

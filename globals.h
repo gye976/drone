@@ -94,7 +94,7 @@ int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int flags);
 int sched_getattr(pid_t pid, struct sched_attr *attr, unsigned int size, unsigned int flags);
 
 void set_rt_deadline(pid_t pid, int runtime, int deadline, int period);
-void set_rt_fifo(pid_t pid, int prio);
+void set_rt_rr(pid_t pid, int prio);
 int get_pid_str(const char *cmd, char pid[][30]);
 
 #include "debug.h"

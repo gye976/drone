@@ -49,7 +49,7 @@ void __exit_program()
     }
 
 	// aio?
-	
+
     exit(0);
 }
 
@@ -94,16 +94,16 @@ void set_rt_deadline(pid_t pid, int runtime, int deadline, int period)
 		exit_program();
 	}
 }
-void set_rt_fifo(pid_t pid, int prio)
+void set_rt_rr(pid_t pid, int prio)
 {
 	struct sched_param param = {
 		.sched_priority = prio,
 	};
 
-    printf("set_rt_fifo, pid:%d\n", pid);
-	if (sched_setscheduler(pid, SCHED_FIFO, &param) != 0)
+    printf("set_rt_rr, pid:%d\n", pid);
+	if (sched_setscheduler(pid, SCHED_RR, &param) != 0)
 	{
-		perror("set_rt_fifo");
+		perror("set_rt_rr");
 		exit_program();
 	}
 }

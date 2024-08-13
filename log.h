@@ -1,6 +1,7 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include <arpa/inet.h>
 #include <aio.h>
 
 class Pool
@@ -40,27 +41,44 @@ private:
 class Log
 {
 public:	
-	Log(const char *filename);
+	Log(const char *name);
 	~Log();
 
-	static void flush_log_queue();
+	static void flush_log();
 	
 	void add_log_queue(const char *format, ...);
-	void write_log_queue();
+	void write_log();
+	void write_log_file();
+	void write_log_socket();
 
 private:
 	static struct aiocb _s_aiocb[N];
 	static struct aiocb *_s_aiocb_list[N];
 	static int _s_idx;
 
+	const char* _name;
+
 	int _idx_global;
 	int _fd;
 	int _offset = 0;
 
-	char _buffer[1024];
+	char _buffer[2048];
 	int _buffer_idx = 0;
 
+	int _sockfd;
+    struct sockaddr_in _server_addr;
 };
+
+
+#define ADD_LOG_ALL(format, ...) \
+do { \
+	extern Log *g_log_list[20]; \
+	extern int g_log_list_num;	\
+\
+	for (int i__ = 0; i__ < g_log_list_num; i__++) { \
+		g_log_list[i__]->add_log_queue(format, ##__VA_ARGS__); \
+	} \
+} while(0)
 
 
 #define ADD_LOG_ARRAY(filename, num, format, data) \
@@ -74,12 +92,13 @@ do { \
 } while(0)
 
 
-#define ADD_LOG(filename, format, ...) \
+#define ADD_LOG(name, format, ...) \
 do { \
-	extern Log g_##filename##_log; \
+	extern Log g_##name##_log; \
 \
-	g_##filename##_log.add_log_queue(format, ##__VA_ARGS__); \
+	g_##name##_log.add_log_queue(format, ##__VA_ARGS__); \
 } while(0)
+
 
 #define FLUSH_LOG() \
 do { \
@@ -87,10 +106,9 @@ do { \
 	extern int g_log_list_num;	\
 \
 	for (int i__ = 0; i__ < g_log_list_num; i__++) { \
-		g_log_list[i__]->write_log_queue(); \
+		g_log_list[i__]->write_log(); \
 	} \
-\
-	Log::flush_log_queue(); \
+	Log::flush_log(); \
 } while(0)
 
 
