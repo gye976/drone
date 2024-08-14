@@ -37,16 +37,17 @@ void Drone::loop()
     //     exit_program();
     // }
 
-	DtTrace mpu_dt_trace;
-	
+	DtTrace dt_mpu6050("mpu6050");
+	LogTime log_time(400);
+
 	size_t cycle = 0;
 	while (1)
 	{
 		//update_new_mono_time(&ts_mono_prev);
 
-		ADD_LOG_ALL("%zu ", cycle);
+		//ADD_LOG_ALL("%zu ", cycle);
 
-		trace_func_dt(mpu_dt_trace, _mpu6050.do_mpu6050);
+		trace_func_dt(dt_mpu6050, _mpu6050.do_mpu6050);
 
 		lock_drone();
 		// 목표각 설정.
@@ -66,13 +67,13 @@ void Drone::loop()
 
 		cycle++;
 
-		ADD_LOG_ALL("\n");
+		//ADD_LOG_ALL("\n");
 		
 		//update_new_mono_time(&ts_mono_cur);
 		//float dt = timespec_to_float(&ts_mono_cur) - timespec_to_float(&ts_mono_prev);
 		//ADD_LOG(dt, "%f\n", dt);
 
-		FLUSH_LOG();
+		FLUSH_LOG_SOCKET();
 	}
 }
 void Drone::set_hovering()
@@ -117,10 +118,10 @@ void Drone::log_data()
 	float *angle_cur = _mpu6050.get_angle();
 	float *rate_cur = _mpu6050.get_gyro_rate();
 	
-	ADD_LOG_ARRAY(mpu6050, 3, "%f", _angle_target);
-	ADD_LOG_ARRAY(mpu6050, 3, "%f", angle_cur);
-	ADD_LOG_ARRAY(mpu6050, 3, "%f", _rate_target);
-	ADD_LOG_ARRAY(mpu6050, 3, "%f", rate_cur);
+	ADD_LOG_ARRAY_SOCKET(mpu6050, 3, "%f", _angle_target);
+	ADD_LOG_ARRAY_SOCKET(mpu6050, 3, "%f", angle_cur);
+	ADD_LOG_ARRAY_SOCKET(mpu6050, 3, "%f", _rate_target);
+	ADD_LOG_ARRAY_SOCKET(mpu6050, 3, "%f", rate_cur);
 }
 
 void Drone::update_pid_out(float *angle, float *gyro_rate)

@@ -89,13 +89,13 @@ void Pid::do_cascade_pid(int axis, float angle_in, float rate_in, float *angle_t
 
 void Pid::log_data()
 {
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[0][0]); // 각도  피치
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[0][1]);        // 롤 
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[0][2]);    	 // 요
+	ADD_LOG_ARRAY_SOCKET(pid, 3, "%f", _term[0][0]); // 각도  피치
+	ADD_LOG_ARRAY_SOCKET(pid, 3, "%f", _term[0][1]);        // 롤 
+	ADD_LOG_ARRAY_SOCKET(pid, 3, "%f", _term[0][2]);    	 // 요
 
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[1][0]); // 자이로
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[1][1]); 
-	ADD_LOG_ARRAY(pid, 3, "%f", _term[1][2]); 
+	ADD_LOG_ARRAY_SOCKET(pid, 3, "%f", _term[1][0]); // 자이로
+	ADD_LOG_ARRAY_SOCKET(pid, 3, "%f", _term[1][1]); 
+	ADD_LOG_ARRAY_SOCKET(pid, 3, "%f", _term[1][2]); 
 
 //	percent, 딱히 봐봤자 의미가없음
 

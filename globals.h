@@ -31,12 +31,13 @@
 \
 	void __exit_##type##_global_func() \
 	{ \
-		printf("  exit_"#type" entry\n"); \
+		printf("  !exit_"#type" entry\n"); \
 		for (int i__ = 0; i__ < __exit_##type##_instance_num; i__++) { \
 			printf("    exit_"#type" instance%d entry\n", i__); \
 			exit_##type(__exit_##type##_instance_list[i__]); \
 			printf("    exit_"#type" instance%d exit\n\n", i__); \
 		} \
+		printf("  !exit_"#type" exit\n"); \
 	} 
 
 #define ADD_EXIT(type) \

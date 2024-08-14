@@ -34,7 +34,7 @@ public:
     LogTime(int n);
     ~LogTime();
 
-    inline void update_pre_time()
+    inline void update_prev_time()
     {
         update_new_mono_time(&_ts_mono_prev);
         update_new_cpu_time(&_ts_cpu_prev);
@@ -69,10 +69,10 @@ private:
 class DtTrace 
 {
 public:     
-    DtTrace();
+    DtTrace(const char *name);
     ~DtTrace();
 
-    inline void update_pre_time()
+    inline void update_prev_time()
     {
         update_new_mono_time(&_ts_mono_prev);
         update_new_cpu_time(&_ts_cpu_prev);
@@ -86,6 +86,8 @@ public:
     void update_data();
 
 private:
+    const char *_name;
+
     float _mono_dt_max = 0.0f;
     float _mono_dt_min = 999999.0f;
     float _mono_dt_mean = 0.0f;
@@ -105,7 +107,7 @@ private:
 
 #define trace_func_dt(dt_trace, func, ...) \
 do { \
-    dt_trace.update_pre_time(); \
+    dt_trace.update_prev_time(); \
     func(__VA_ARGS__); \
     dt_trace.update_cur_time(); \
     dt_trace.update_data(); \

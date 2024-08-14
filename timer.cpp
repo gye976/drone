@@ -14,19 +14,20 @@ void exit_DtTrace(DtTrace *dt_trace)
 }
 INIT_EXIT(DtTrace);
 
-DtTrace::DtTrace()
+DtTrace::DtTrace(const char *name)
+    : _name(name)
 {
     ADD_EXIT(DtTrace);
 }
 DtTrace::~DtTrace()
 {
-    print_data();
+    //print_data();
 }
 void DtTrace::print_data()
 {
+    printf("%s,    num:%zu", _name, _num);
 	printf("\nmono_dt_max:%f, cpu_dt_max:%f \nmono_dt_min:%f, cpu_dt_min:%f \nmono_dt_mean:%f, cpu_dt_mean:%f \n", 
         _mono_dt_max, _cpu_dt_max, _mono_dt_min, _cpu_dt_min, _mono_dt_mean, _cpu_dt_mean);
-    printf("cycle:%zu", _num);
 }
 void DtTrace::update_data()
 {
