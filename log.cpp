@@ -1,13 +1,24 @@
 #include <arpa/inet.h>
 
+#include "log.h"
 
 #include "timer.h"
-#include "log.h"
+
+void *send_socket_loop(void *arg)
+{
+	LogSocketManager *log_socket_manager = (LogSocketManager*)arg;
+
+	while (1) {
+		log_socket_manager->send();
+	}
+
+	return NULL; 
+}
 
 pthread_t make_socket_thread(LogSocketManager *log_socket_manager)
 {    
 	pthread_t thread;
-	if (pthread_create(&thread, NULL, send_socket, log_socket_manager) != 0) {
+	if (pthread_create(&thread, NULL, send_socket_loop, log_socket_manager) != 0) {
 		perror("make_socket_thread ");
 		exit_program();
 	}
@@ -31,6 +42,28 @@ LogSocketManager g_log_socket_manager;
 
 LogSocket g_mpu6050_log_socket("mpu6050");
 LogSocket g_pid_log_socket("pid");
+
+Pool::Pool(int n)
+	: _size_nbytes(1 << n)
+{
+	_memory = (char*)malloc(sizeof(1) * _size_nbytes);
+}
+Pool::~Pool()
+{
+	free(_memory);
+}
+void *Pool::get_memory(int nbytes) 
+{
+	if (_idx + nbytes >= _size_nbytes) {
+		_idx = nbytes;
+		return _memory;
+	} else {
+		void *ptr = _memory + _idx;
+
+		_idx += nbytes;
+		return ptr; 
+	}
+}
 
 void LogBuffer::add_buffer(const char* buf, int len)
 {
@@ -82,8 +115,6 @@ void LogSocket::clear_buffer()
 void LogSocket::write_buffer()
 {
 	_log_socket_manager->add_buffer(&_log_buffer);
-
-	_log_buffer.clear_buffer();
 }
 
 LogSocketManager::LogSocketManager()
@@ -129,10 +160,15 @@ LogSocketManager::LogSocketManager()
 		close(_sockfd);
 		exit_program();
 	}
+
+	// if (pthread_spin_init(&_spinlock) != 0) {
+	// 	perror("LogSocketManager, pthread_spin_init");
+	// 	exit_program();	
+	// }
 }
 void LogSocketManager::add_buffer(LogBuffer *log_buffer)
 {
-	_log_buffer.add_buffer(log_buffer);
+	_log_buffer[_buffer_produce_idx].add_buffer(log_buffer);
 }
 void LogSocketManager::increase_log_socket(LogSocket *log_socket)
 {
@@ -140,45 +176,70 @@ void LogSocketManager::increase_log_socket(LogSocket *log_socket)
 	_list_num++;
 }
 
-LogTime log_socket_time(1000);
-
 void LogSocketManager::flush_buffer()
 {
-	for (int i = 0; i < _list_num; i++) {
-		_log_socket_list[i]->write_buffer();
+	int next_produce_idx = (_buffer_produce_idx + 1) & (MANAGER_BUFFER_SIZE - 1);
+
+	if (next_produce_idx == _buffer_consume_idx) {
+		printf("consumer is slow, bug\n");
+		exit_program();
+
+		return;
 	}
 
-	char *buf = _log_buffer.get_buffer();
-	int buf_idx = _log_buffer.get_idx();
+	for (int i = 0; i < _list_num; i++) {
+		_log_socket_list[i]->add_buffer("\n", 1);
+		_log_socket_list[i]->write_buffer();
+		
+		_log_socket_list[i]->clear_buffer();
+	}
 
+	//printf("produce idx: %d\n", _buffer_produce_idx);
+	_buffer_produce_idx = next_produce_idx;
+}
+void LogSocketManager::send()
+{
+	int ret;
+	char *buf;
+	int buf_idx;
 	struct io_uring_sqe *sqe;
 	//struct io_uring_cqe *cqe;
+
+	if (_buffer_produce_idx == _buffer_consume_idx) {
+		//printf("producer slow\n");
+		usleep(200);
+		return;
+	}
+
+	buf = _log_buffer[_buffer_consume_idx].get_buffer();
+	buf_idx = _log_buffer[_buffer_consume_idx].get_idx();
+
+	// int space_left = io_uring_sq_space_left(&_ring);
+	// if (space_left > 0) {
+	// } else {
+	// 	printf("송신 큐가 꽉 찼습니다. 더 이상 SQE를 추가할 수 없습니다.\n");
+	// 	goto CLEARs;
+	// }
+
 	sqe = io_uring_get_sqe(&_ring);
-	
+		
 	io_uring_prep_send(sqe, _sockfd, buf, buf_idx, 0); 
 
-	log_socket_time.update_prev_time();
-
-	int ret = io_uring_submit(&_ring);
+	ret = io_uring_submit(&_ring);
 	if (unlikely(ret < 0)) {
 		perror("io_uring_submit err");
 		exit_program();
-	} else if (ret == 0) {
-		perror("io_uring submit ret == 0\n");
+	} else if (unlikely(ret == 0)) {
+		perror("io_uring submit ret == 0\n");		
 		exit_program();
 	}
 
-	log_socket_time.update_cur_time();
-	log_socket_time.ff();
-
 	//_log_buffer.print_buffer();
-	_log_buffer.clear_buffer();
+	_log_buffer[_buffer_consume_idx].clear_buffer();
 
-	for (int i = 0; i < _list_num; i++) {
-		_log_socket_list[i]->clear_buffer();
-	}
+	//printf("consume idx: %d\n", _buffer_consume_idx);
+	_buffer_consume_idx = (_buffer_consume_idx + 1) & (MANAGER_BUFFER_SIZE - 1);
 }
-
 
 // Log g_dt_log("dt");
 

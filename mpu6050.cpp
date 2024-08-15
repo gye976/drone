@@ -124,38 +124,38 @@ void Mpu6050::calibrate(int n)
 
 void Mpu6050::read_raw(float acc[], float gyro[])
 {
-    char data[14];
-    
-    char reg[1] = {ACCEL_XOUT_H};
-	int ret;
+	char data[14];
 	
-	ret = write(_i2c_fd, reg, 1);
-	if (unlikely(ret != 1)) {
-        perror("mpu read_raw err");
-        exit_program();
-    }
-	
-	ret = read(_i2c_fd, data, 14);
-	if (unlikely(ret != 14)) {
-        perror("mpu read_raw err");
-        exit_program();
-    }
+	char reg[1] = {ACCEL_XOUT_H};
+		int ret;
+		
+		ret = write(_i2c_fd, reg, 1);
+		if (unlikely(ret != 1)) {
+			perror("read_raw, write err");
+			exit_program();
+		}
+		
+		ret = read(_i2c_fd, data, 14);
+		if (unlikely(ret != 14)) {
+			perror("read_raw, read err");
+			exit_program();
+	}
 
-    int16_t accel_x = (data[0] << 8) | data[1];
-    int16_t accel_y = (data[2] << 8) | data[3];
-    int16_t accel_z = (data[4] << 8) | data[5];
+	int16_t accel_x = (data[0] << 8) | data[1];
+	int16_t accel_y = (data[2] << 8) | data[3];
+	int16_t accel_z = (data[4] << 8) | data[5];
 
-    int16_t gyro_x = (data[8] << 8) | data[9];
-    int16_t gyro_y = (data[10] << 8) | data[11];
-    int16_t gyro_z = (data[12] << 8) | data[13];
+	int16_t gyro_x = (data[8] << 8) | data[9];
+	int16_t gyro_y = (data[10] << 8) | data[11];
+	int16_t gyro_z = (data[12] << 8) | data[13];
 
-    acc[X] = (float)accel_x / ACC_FS_SENSITIVITY;
-    acc[Y] = (float)accel_y / ACC_FS_SENSITIVITY;
-    acc[Z] = (float)accel_z / ACC_FS_SENSITIVITY;
+	acc[X] = (float)accel_x / ACC_FS_SENSITIVITY;
+	acc[Y] = (float)accel_y / ACC_FS_SENSITIVITY;
+	acc[Z] = (float)accel_z / ACC_FS_SENSITIVITY;
 
-    gyro[X] = (float)gyro_x / GYRO_FS_SENSITIVITY;
-    gyro[Y] = (float)gyro_y / GYRO_FS_SENSITIVITY;
-    gyro[Z] = (float)gyro_z / GYRO_FS_SENSITIVITY;
+	gyro[X] = (float)gyro_x / GYRO_FS_SENSITIVITY;
+	gyro[Y] = (float)gyro_y / GYRO_FS_SENSITIVITY;
+	gyro[Z] = (float)gyro_z / GYRO_FS_SENSITIVITY;
 }
 
 

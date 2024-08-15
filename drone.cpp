@@ -38,15 +38,11 @@ void Drone::loop()
     // }
 
 	DtTrace dt_mpu6050("mpu6050");
-	LogTime log_time(400);
+	DtTrace dt_socket_flush("socket_flush");
 
 	size_t cycle = 0;
 	while (1)
 	{
-		//update_new_mono_time(&ts_mono_prev);
-
-		//ADD_LOG_ALL("%zu ", cycle);
-
 		trace_func_dt(dt_mpu6050, _mpu6050.do_mpu6050);
 
 		lock_drone();
@@ -64,16 +60,12 @@ void Drone::loop()
 		log_data();
 
 		unlock_drone();
-
 		cycle++;
 
-		//ADD_LOG_ALL("\n");
-		
-		//update_new_mono_time(&ts_mono_cur);
-		//float dt = timespec_to_float(&ts_mono_cur) - timespec_to_float(&ts_mono_prev);
-		//ADD_LOG(dt, "%f\n", dt);
-
+		dt_socket_flush.update_prev_time();
 		FLUSH_LOG_SOCKET();
+		dt_socket_flush.update_cur_time();
+		dt_socket_flush.update_data();
 	}
 }
 void Drone::set_hovering()
@@ -104,7 +96,7 @@ void Drone::set_motor_speed()
 			pwm_in[i] = PWM_MAX - PWM_MIN;
 
 			printf("max, maybe bug, exit\n");
-			exit_program();;
+			//exit_program();
 		}
 
 		dbg_print("  [%d]:%d \n", i, pwm_in[i]);

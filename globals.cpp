@@ -30,8 +30,8 @@ int sched_getattr(pid_t pid, struct sched_attr *attr, unsigned int size, unsigne
 }
 
 static void signal_handler(int signum) {
-    //TO DO signum이 종료관련일 경우 종료처리
-    printf("signum:%d\n", signum);
+	//TO DO signum이 종료관련일 경우 종료처리
+	printf("signum:%d\n", signum);
 
 	exit_program();
 }
@@ -46,9 +46,9 @@ void __exit_program()
 {    
 	printf("!!exit_program entry\n");
 
-    for (int i = 0; i < g_exit_func_global_num; i++) {
-        g_exit_func_global_list[i]();
-    }
+	for (int i = 0; i < g_exit_func_global_num; i++) {
+		g_exit_func_global_list[i]();
+	}
 
 	printf("!!exit_program exit\n");
 

@@ -81,7 +81,7 @@ void LogTime::ff()
     _i++;
 
     int min_i = 0, max_i = 0;
-	int n_over = 0;
+	//int n_over = 0;
 
     if (_i == _n) {
 	    for (int i = 1; i < _n; i++) {
@@ -94,16 +94,16 @@ void LogTime::ff()
                 min_i = i;
             }
 
-            if (_mono_dt[i] > 0.006) {
-                n_over++;
-            }
+            // if (_mono_dt[i] > 0.) {
+            //     n_over++;
+            // }
 		}
 
 		printf("\nmax:%f(%d)\n(%ld.%09ld) -> (%ld.%09ld)\nmin:%f(%d)\n(%ld.%09ld) -> (%ld.%09ld)\n",
              _dt_max, max_i, _mono_s[max_i - 1], _mono_ns[max_i - 1], _mono_s[max_i], _mono_ns[max_i], \
              _dt_min, min_i, _mono_s[min_i - 1], _mono_ns[min_i - 1], _mono_s[min_i], _mono_ns[min_i]);
         
-        printf("over n: %d\n", n_over);
+//        printf("over n: %d\n");
         exit_program();
 	} 
 }

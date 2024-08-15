@@ -7,13 +7,13 @@
 
 #define SEC_TO_NSEC     1000000000ULL
 
-static inline void update_new_mono_time(struct timespec *ts)
+inline void update_new_mono_time(struct timespec *ts)
 {
     if (clock_gettime(CLOCK_MONOTONIC, ts) != 0) {
         exit_program();
     }
 }
-static inline void update_new_cpu_time(struct timespec *ts)
+inline void update_new_cpu_time(struct timespec *ts)
 {
     if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, ts) != 0) {
         exit_program();

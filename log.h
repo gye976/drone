@@ -5,7 +5,7 @@
 #include <liburing.h>
 #include <stdarg.h>
 #include <aio.h>
-
+#include <pthread.h>
 
 #define MULTICAST_ADDR "224.0.0.1"
 #define PORT 5007
@@ -23,28 +23,10 @@ do { \
 class Pool
 {
 public:
-	Pool(int n) 
-		: _size_nbytes(1 << n)
-	{
-		_memory = (char*)malloc(sizeof(1) * _size_nbytes);
-	}
-	~Pool()
-	{
-		free(_memory);
-	}
+	Pool(int n);
+	~Pool();
 
-	void *get_memory(int nbytes) 
-	{
-		if (_idx + nbytes >= _size_nbytes) {
-			_idx = nbytes;
-			return _memory;
-		} else {
-			void *ptr = _memory + _idx;
-
-			_idx += nbytes;
-			return ptr; 
-		}
-	}
+	void *get_memory(int nbytes);
 
 private:
 	char *_memory;
@@ -93,6 +75,7 @@ private:
 	LogBuffer _log_buffer;
 };
 
+#define MANAGER_BUFFER_SIZE	16
 class LogSocketManager
 {
 public:
@@ -101,12 +84,15 @@ public:
 	void increase_log_socket(LogSocket *log_socket);
 	void add_buffer(LogBuffer *log_buffer);
 	void flush_buffer();
-
+	void send();
 private:
 	LogSocket *_log_socket_list[20];
 	int _list_num = 0;
 
-	LogBuffer _log_buffer;
+	LogBuffer _log_buffer[MANAGER_BUFFER_SIZE];
+	//pthread_spinlock_t _spinlock;
+	int _buffer_consume_idx = 0;
+	int _buffer_produce_idx = 0;
 
 	int _sockfd;
 	struct sockaddr_in _group_addr;
@@ -143,8 +129,6 @@ private:
 // 	char _buffer[2048];
 // 	int _buffer_idx = 0;
 // };
-
-
 
 
 #define ADD_LOG_ARRAY_SOCKET(name, num, format, data) \
@@ -187,5 +171,7 @@ do { \
 	g_log_socket_manager.flush_buffer(); \
 } while(0)
 
+extern LogSocketManager g_log_socket_manager;
+pthread_t make_socket_thread(LogSocketManager *log_socket_manager);
 
 #endif
