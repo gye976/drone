@@ -1,0 +1,11 @@
+*
+
+!.gitignore
+!*.cpp
+!*.c
+!*.h
+!*.sh
+!*.py
+
+!backup/
+!python_code/
