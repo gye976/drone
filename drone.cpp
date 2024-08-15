@@ -25,41 +25,46 @@ void Drone::loop()
 	float *angle = _mpu6050.get_angle();
 	float *gyro_rate = _mpu6050.get_gyro_rate();
 
-	// _mpu6050.set_irq_thread_high_priority();
-	// _mpu6050.calibrate(30);
-
-	//init_rt_sched();
-
-	// char reg[1] = {ACCEL_XOUT_H};
-	// int ret = write(_mpu6050._i2c_fd, reg, 1);
-	// if (unlikely(ret != 1)) {
-    //     perror("mpu read_raw err");
-    //     exit_program();
-    // }
+	// float cur_angle[3];
+	// float cur_gyro_rate[3];
+	// _mpu6050.calibrate(30, cur_angle, cur_gyro_rate);
 
 	DtTrace dt_mpu6050("mpu6050");
 	DtTrace dt_socket_flush("socket_flush");
 
+	int a = 0;
+	while (a < 100) {
+		_mpu6050.do_mpu6050();
+		a++;
+	}
+
 	size_t cycle = 0;
 	while (1)
 	{
-		trace_func_dt(dt_mpu6050, _mpu6050.do_mpu6050);
+		TRACE_FUNC_DT(dt_mpu6050, _mpu6050.do_mpu6050);
 
-		lock_drone();
-		// 목표각 설정.
-		//	타겟을 롤, 피치는 0로 지정 (자세제어)
-		//	쓰로틀,요우는 따로 지정 (일단 yaw는 항상 오차가 0이도록 설정)
+		// int ret = trylock_drone();
+		// if (ret == 0) {
+		// 	// 목표각 설정.
+		// 	//	타겟을 롤, 피치는 0로 지정 (자세제어)
+		// 	//	쓰로틀,요우는 따로 지정 (일단 yaw는 항상 오차가 0이도록 설정)
+
+		// 	set_hovering();
+		// 	// update_target();
+
+		// 	log_data();
+
+		// 	unlock_drone();
+		// }
 
 		set_hovering();
 		// update_target();
 
+		log_data();
+
 		update_pid_out(angle, gyro_rate);
 
 		set_motor_speed();
-
-		log_data();
-
-		unlock_drone();
 		cycle++;
 
 		dt_socket_flush.update_prev_time();
@@ -72,7 +77,7 @@ void Drone::set_hovering()
 {
 	_angle_target[PITCH] = 0.0f;
 	_angle_target[ROLL] = 0.0f;
-	_angle_target[YAW] = _mpu6050.get_angle()[YAW];
+	_angle_target[YAW] = 0.0f;//_mpu6050.get_angle()[YAW];
 
 	//_throttle = 호버링 duty
 }
@@ -151,10 +156,10 @@ void* drone_loop(void *drone)
 pthread_t make_drone_thread(Drone *drone)
 {    
 	pthread_t thread;
-    if (pthread_create(&thread, NULL, drone_loop, drone) != 0) {
-        perror("make_drone_thread ");
-        exit_program();
-    }
+	if (pthread_create(&thread, NULL, drone_loop, drone) != 0) {
+		perror("make_drone_thread ");
+		exit_program();
+	}
 	pthread_setname_np(thread, "gye-drone");
 
     // cap_t caps = cap_get_proc();

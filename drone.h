@@ -68,6 +68,17 @@ public:
         
     //     return ret;
     // }
+    inline int trylock_drone()
+    {
+        int ret = pthread_mutex_trylock(&_mutex);
+
+        if (unlikely(!(ret == 0 || ret == EBUSY))) {
+            perror("trylock_drone err");
+            exit_program();
+        }
+
+        return ret;
+    }
     inline void lock_drone()
     {
         int ret = pthread_mutex_lock(&_mutex);

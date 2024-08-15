@@ -8,7 +8,7 @@ void *send_socket_loop(void *arg)
 {
 	LogSocketManager *log_socket_manager = (LogSocketManager*)arg;
 
-	while (1) {
+	while (log_socket_manager->check_cancle_flag() == 0) {
 		log_socket_manager->send();
 	}
 
@@ -25,7 +25,7 @@ pthread_t make_socket_thread(LogSocketManager *log_socket_manager)
 	pthread_setname_np(thread, "gye-socket");
 
 	struct sched_param param = {
-		.sched_priority = 99,
+		.sched_priority = 75,
 	};
 	if (pthread_setschedparam(thread, SCHED_RR, &param) != 0)
 	{
@@ -117,8 +117,17 @@ void LogSocket::write_buffer()
 	_log_socket_manager->add_buffer(&_log_buffer);
 }
 
+void exit_LogSocketManager(LogSocketManager *log_socket_manager)
+{
+	log_socket_manager->cancle_loggging();
+	log_socket_manager->cancel_all_send();
+}
+INIT_EXIT(LogSocketManager);
+
 LogSocketManager::LogSocketManager()
 {
+	ADD_EXIT(LogSocketManager);
+
 	if ((_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 		perror("Socket creation failed");
 		exit_program();
@@ -176,10 +185,11 @@ void LogSocketManager::increase_log_socket(LogSocket *log_socket)
 	_list_num++;
 }
 
+//LogTime aa(400);
+
 void LogSocketManager::flush_buffer()
 {
 	int next_produce_idx = (_buffer_produce_idx + 1) & (MANAGER_BUFFER_SIZE - 1);
-
 	if (next_produce_idx == _buffer_consume_idx) {
 		printf("consumer is slow, bug\n");
 		exit_program();
@@ -187,12 +197,15 @@ void LogSocketManager::flush_buffer()
 		return;
 	}
 
+	//aa.update_prev_time();
 	for (int i = 0; i < _list_num; i++) {
 		_log_socket_list[i]->add_buffer("\n", 1);
 		_log_socket_list[i]->write_buffer();
-		
+
 		_log_socket_list[i]->clear_buffer();
 	}
+	//aa.update_cur_time();
+	//aa.ff();
 
 	//printf("produce idx: %d\n", _buffer_produce_idx);
 	_buffer_produce_idx = next_produce_idx;
@@ -222,6 +235,7 @@ void LogSocketManager::send()
 	// }
 
 	sqe = io_uring_get_sqe(&_ring);
+	sqe->user_data = (__u64)NULL;
 		
 	io_uring_prep_send(sqe, _sockfd, buf, buf_idx, 0); 
 
@@ -239,6 +253,23 @@ void LogSocketManager::send()
 
 	//printf("consume idx: %d\n", _buffer_consume_idx);
 	_buffer_consume_idx = (_buffer_consume_idx + 1) & (MANAGER_BUFFER_SIZE - 1);
+}
+void LogSocketManager::cancel_all_send()
+{
+#define IORING_ASYNC_CANCEL_ALL	(1U << 0)
+
+	struct io_uring_sqe *sqe;
+	sqe = io_uring_get_sqe(&_ring);
+	io_uring_prep_cancel(sqe, NULL, IORING_ASYNC_CANCEL_ALL);
+	
+	int ret = io_uring_submit(&_ring);
+	if (unlikely(ret < 0)) {
+		perror("cancel_all_send, io_uring_submit err");
+	} else if (unlikely(ret == 0)) {
+		perror("cancel_all_send, io_uring submit ret == 0\n");		
+	}
+
+	io_uring_queue_exit(&_ring);
 }
 
 // Log g_dt_log("dt");

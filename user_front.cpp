@@ -107,40 +107,7 @@ void cmd_pid(Drone *drone)
 	pause_user(drone);
 
 	drone->get_pid()->read_meta_file();
-
-	// char buf[50];
-	// if (scan_str(buf) == -1) {
-	// 	printf("arg err\n");
-	// 	return;
-	// }
-	// printf("arg: %s\n", buf);
-
-	// char *saveptr;
-	// char *token = strtok_r(buf, ",", &saveptr);
-
-	// int para_num = 4; ////////////
-	// float para[6] = { 0, };
-	// int para_i = 0;
-	// while (token != NULL) {
-	// 	char *endptr;
-	// 	float f = strtof(token, &endptr);
-
-	// 	if (endptr == buf) {
-	// 		goto ERR;
-	// 	} else {
-    //     	para[para_i++] = f;
-	// 	}
-
-    //     token = strtok_r(NULL, ",", &saveptr);
-	// }
-
-	// printf("para[]: ");
-	// for (int i = 0; i < para_num; i++) {
-	// 	printf("%f, ", para[i]);
-	// }
-	// printf("\n");
-
-	// s_drone->get_pid()->update_para(para);
+	drone->get_pid()->print_parameter();
 
 	resume_user(drone);
 

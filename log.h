@@ -85,20 +85,29 @@ public:
 	void add_buffer(LogBuffer *log_buffer);
 	void flush_buffer();
 	void send();
+	void cancel_all_send();
+	inline bool check_cancle_flag()
+	{
+		return _cancle_flag;
+	}
+	inline void cancle_loggging()
+	{
+		_cancle_flag = 1;
+	}
 private:
-	LogSocket *_log_socket_list[20];
-	int _list_num = 0;
-
 	LogBuffer _log_buffer[MANAGER_BUFFER_SIZE];
-	//pthread_spinlock_t _spinlock;
-	int _buffer_consume_idx = 0;
-	int _buffer_produce_idx = 0;
-
-	int _sockfd;
+	LogSocket *_log_socket_list[20];
 	struct sockaddr_in _group_addr;
 	struct in_addr _local_ip;
-	int _ttl = TTL;
 	struct io_uring _ring;
+
+	int _list_num = 0;
+	int _buffer_consume_idx = 0;
+	int _buffer_produce_idx = 0;
+	int _sockfd;
+	int _ttl = TTL;
+
+	bool _cancle_flag = 0;
 };
 
 // #define LOGFILE_BUF_SIZE	(1 << 5)

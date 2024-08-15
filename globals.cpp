@@ -44,13 +44,21 @@ int g_exit_func_global_num = 0;
 extern pthread_t g_threads[2];
 void __exit_program()
 {    
-	printf("!!exit_program entry\n");
+	static bool s_exit_flag = 0;
+	if (s_exit_flag == 1) {
+		while (1) {
+			usleep(1000);
+		}
+	}
+	s_exit_flag = 1;
+
+	printf("###exit_program entry\n");
 
 	for (int i = 0; i < g_exit_func_global_num; i++) {
 		g_exit_func_global_list[i]();
 	}
 
-	printf("!!exit_program exit\n");
+	printf("###exit_program exit\n");
 
 	exit(0);
 }

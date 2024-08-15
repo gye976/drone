@@ -107,8 +107,7 @@ public:
 
 	void do_mpu6050();
 	void print_data();
-	void calibrate(int n);
-	int _i2c_fd;
+	void calibrate(int n, float acc_angle_mean[], float gyro_rate_mean[]);
 private:
 	void read_raw(float acc[], float gyro[]);
 	void set_irq_thread_high_priority();
@@ -129,6 +128,7 @@ private:
 	// //0.000598, 0.001196, 0.002392, 0.004785
 	// static float _s_afs[4] = {16384.0, 8192.0, 4096.0, 2048.0};
 	// static int _s_afs_i = 0;
+	int _i2c_fd;
 };
 
 #endif 

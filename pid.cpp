@@ -23,7 +23,6 @@ Pid::Pid()
 }
 void Pid::print_parameter()
 {
-	printf("pid:print_parameter\n");
 	printf("angle, kp:%f, ki:%f, kd:%f\n", _gain[0][P], _gain[0][I], _gain[0][D]);
 	printf("rate, kp:%f, ki:%f, kd:%f\n\n", _gain[1][P], _gain[1][I], _gain[1][D]);
 }
@@ -161,10 +160,6 @@ END:
 		exit_program();
 	}
 
-    for (size_t i = 0; i < 8; ++i) {
-        printf("%f~\n", f[i]);
-    }
-
 	_gain[0][0] = f[0];
 	_gain[0][1] = f[1];
 	_gain[0][2] = f[2];
@@ -200,7 +195,7 @@ void Pid::write_meta_file()
 
 	fprintf(file, "\n"); 
 	fprintf(file, "%f", _iterm_max[0]); 
-    fprintf(file, "\t"); 
+    	fprintf(file, "\t"); 
 	fprintf(file, "%f", _iterm_max[1]); 
 }
 

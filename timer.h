@@ -105,7 +105,7 @@ private:
     struct timespec _ts_cpu_prev;
 };
 
-#define trace_func_dt(dt_trace, func, ...) \
+#define TRACE_FUNC_DT(dt_trace, func, ...) \
 do { \
     dt_trace.update_prev_time(); \
     func(__VA_ARGS__); \

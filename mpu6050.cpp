@@ -85,7 +85,7 @@ void Mpu6050::set_irq_thread_high_priority()
 
 }
 
-void Mpu6050::calibrate(int n)
+void Mpu6050::calibrate(int n, float acc_angle_mean[], float gyro_rate_mean[])
 {
 	if (unlikely(n > 65500)) {
 		exit_program();
@@ -110,13 +110,14 @@ void Mpu6050::calibrate(int n)
 		}
 	}
 
+
 	for (int i = 0; i < NUM_AXIS; i++) {
-		_acc_angle_bias[i] = acc_angle_sum[i] / n;
-		_gyro_rate_bias[i] = gyro_sum[i] / n;
+		acc_angle_mean[i] = acc_angle_sum[i] / n;
+		gyro_rate_mean[i] = gyro_sum[i] / n;
 	}
 
-	printf("acc bias: %f, %f, %f\n", _acc_angle_bias[0], _acc_angle_bias[1], _acc_angle_bias[2]);
-	printf("gyro bias: %f, %f, %f\n", _gyro_rate_bias[0], _gyro_rate_bias[1], _gyro_rate_bias[2]);
+	printf("cur acc: %f, %f, %f\n", acc_angle_mean[0], acc_angle_mean[1], acc_angle_mean[2]);
+	printf("cur gyro: %f, %f, %f\n", gyro_rate_mean[0], gyro_rate_mean[1], gyro_rate_mean[2]);
 	printf("\n");
 }
 
