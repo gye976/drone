@@ -19,14 +19,30 @@ inline void update_new_cpu_time(struct timespec *ts)
         exit_program();
     }
 }
-static inline float time_to_float(long s, long ns)
+
+static inline double time_to_double(long s, long ns)
 {
-    return (float)(s * SEC_TO_NSEC + ns) / 1000000000.0f;
+    // return (float)(s * SEC_TO_NSEC + ns) / 1000000000.0f;  /* overflow err */
+
+    double dt = (double)s + ((double)ns / 1000000000.0);
+    return dt;
 }
-static inline float timespec_to_float(struct timespec *ts)
+static inline double timespec_to_double(struct timespec *ts)
 {
-    return time_to_float(ts->tv_sec, ts->tv_nsec);
+    return time_to_double(ts->tv_sec, ts->tv_nsec);
 }
+
+// static inline float time_to_float(long s, long ns)
+// {
+//     // return (float)(s * SEC_TO_NSEC + ns) / 1000000000.0f;  /* overflow err */
+
+//     float dt = (float)s + ((float)ns / 1000000000.0f);
+//     return dt;
+// }
+// static inline float timespec_to_float(struct timespec *ts)
+// {
+//     return time_to_float(ts->tv_sec, ts->tv_nsec);
+// }
 
 class LogTime
 {
@@ -47,8 +63,8 @@ public:
     void ff();
 
 private:
-    float *_mono_dt;
-    float *_cpu_dt;
+    double *_mono_dt;
+    double *_cpu_dt;
     
     long *_mono_s;
     long *_mono_ns;
@@ -56,8 +72,8 @@ private:
     int _n;
 
     int _i;
-    float _dt_min;
-    float _dt_max;
+    double _dt_min = 999999.0f;
+    double _dt_max = 0.0f;
 
     struct timespec _ts_mono_cur;
     struct timespec _ts_mono_prev;
@@ -88,13 +104,13 @@ public:
 private:
     const char *_name;
 
-    float _mono_dt_max = 0.0f;
-    float _mono_dt_min = 999999.0f;
-    float _mono_dt_mean = 0.0f;
+    double _mono_dt_max = 0.0f;
+    double _mono_dt_min = 999999.0f;
+    double _mono_dt_mean = 0.0f;
 
-    float _cpu_dt_max = 0.0f;
-    float _cpu_dt_min = 999999.0f;
-    float _cpu_dt_mean = 0.0f;
+    double _cpu_dt_max = 0.0f;
+    double _cpu_dt_min = 999999.0f;
+    double _cpu_dt_mean = 0.0f;
     
     size_t _num = 0;
 

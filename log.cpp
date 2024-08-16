@@ -187,10 +187,19 @@ void LogSocketManager::increase_log_socket(LogSocket *log_socket)
 
 //LogTime aa(400);
 
+
+DtTrace a("a");
+DtTrace b("b");
+DtTrace c("c");
+DtTrace d("d");
+
+
+
+
 void LogSocketManager::flush_buffer()
 {
 	int next_produce_idx = (_buffer_produce_idx + 1) & (MANAGER_BUFFER_SIZE - 1);
-	if (next_produce_idx == _buffer_consume_idx) {
+	if (unlikely(next_produce_idx == _buffer_consume_idx)) {
 		printf("consumer is slow, bug\n");
 		exit_program();
 
@@ -199,10 +208,20 @@ void LogSocketManager::flush_buffer()
 
 	//aa.update_prev_time();
 	for (int i = 0; i < _list_num; i++) {
+		a.update_prev_time();
 		_log_socket_list[i]->add_buffer("\n", 1);
-		_log_socket_list[i]->write_buffer();
+		a.update_cur_time();
+		a.update_data();
 
+		b.update_prev_time();
+		b.update_cur_time();
+		_log_socket_list[i]->write_buffer();
+		b.update_data();
+
+		c.update_prev_time();
 		_log_socket_list[i]->clear_buffer();
+		c.update_cur_time();
+		c.update_data();	
 	}
 	//aa.update_cur_time();
 	//aa.ff();

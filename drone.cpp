@@ -31,7 +31,7 @@ void Drone::loop()
 
 	DtTrace dt_mpu6050("mpu6050");
 	DtTrace dt_socket_flush("socket_flush");
-
+	LogTime log_time(400);
 	int a = 0;
 	while (a < 100) {
 		_mpu6050.do_mpu6050();
@@ -41,6 +41,8 @@ void Drone::loop()
 	size_t cycle = 0;
 	while (1)
 	{
+		log_time.update_prev_time();
+		
 		TRACE_FUNC_DT(dt_mpu6050, _mpu6050.do_mpu6050);
 
 		// int ret = trylock_drone();
@@ -68,9 +70,13 @@ void Drone::loop()
 		cycle++;
 
 		dt_socket_flush.update_prev_time();
+
 		FLUSH_LOG_SOCKET();
 		dt_socket_flush.update_cur_time();
+
+		log_time.update_cur_time();
 		dt_socket_flush.update_data();
+		log_time.ff();
 	}
 }
 void Drone::set_hovering()
@@ -148,6 +154,9 @@ void Drone::print_parameter()
 
 void* drone_loop(void *drone)
 {
+	//pid=0 (current thread)
+	set_rt_deadline(0, 300 * 1000, 1000 * 1000, 1000 * 1000);
+
 	((Drone*)drone)->loop();
 
 	return NULL; // error

@@ -31,8 +31,8 @@ void DtTrace::print_data()
 }
 void DtTrace::update_data()
 {
-	float mono_dt =  timespec_to_float(&_ts_mono_cur) - timespec_to_float(&_ts_mono_prev);
-	float cpu_dt =  timespec_to_float(&_ts_cpu_cur) - timespec_to_float(&_ts_cpu_prev);
+	double mono_dt =  timespec_to_double(&_ts_mono_cur) - timespec_to_double(&_ts_mono_prev);
+	double cpu_dt =  timespec_to_double(&_ts_cpu_cur) - timespec_to_double(&_ts_cpu_prev);
 
     if (mono_dt > _mono_dt_max) { 
         _mono_dt_max = mono_dt;
@@ -56,8 +56,8 @@ void DtTrace::update_data()
 LogTime::LogTime(int n) 
     : _n(n), _i(0), _dt_min(100.0f), _dt_max(0.0f)
 {
-    _mono_dt = (float*)malloc(_n * sizeof(float));
-    _cpu_dt = (float*)malloc(_n * sizeof(float));
+    _mono_dt = (double*)malloc(_n * sizeof(double));
+    _cpu_dt = (double*)malloc(_n * sizeof(double));
 
     _mono_s = (long*)malloc(_n * sizeof(long));
     _mono_ns = (long*)malloc(_n * sizeof(long));
@@ -72,8 +72,8 @@ LogTime::~LogTime()
 }
 void LogTime::ff()
 {
-	_mono_dt[_i] =  timespec_to_float(&_ts_mono_cur) - timespec_to_float(&_ts_mono_prev);
-	_cpu_dt[_i] =  timespec_to_float(&_ts_cpu_cur) - timespec_to_float(&_ts_cpu_prev);
+	_mono_dt[_i] =  timespec_to_double(&_ts_mono_cur) - timespec_to_double(&_ts_mono_prev);
+	_cpu_dt[_i] =  timespec_to_double(&_ts_cpu_cur) - timespec_to_double(&_ts_cpu_prev);
 
 	_mono_s[_i] = _ts_mono_cur.tv_sec;
 	_mono_ns[_i] = _ts_mono_cur.tv_nsec;
