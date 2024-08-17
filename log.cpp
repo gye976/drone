@@ -117,16 +117,18 @@ void LogSocket::write_buffer()
 	_log_socket_manager->add_buffer(&_log_buffer);
 }
 
-void exit_LogSocketManager(LogSocketManager *log_socket_manager)
+int exit_LogSocketManager(LogSocketManager *log_socket_manager)
 {
 	log_socket_manager->cancle_loggging();
 	log_socket_manager->cancel_all_send();
+
+	return 0;
 }
-INIT_EXIT(LogSocketManager);
+DEFINE_EXIT(LogSocketManager);
 
 LogSocketManager::LogSocketManager()
 {
-	ADD_EXIT(LogSocketManager);
+	INIT_EXIT_IN_CTOR(LogSocketManager);
 
 	if ((_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 		perror("Socket creation failed");
@@ -177,6 +179,10 @@ LogSocketManager::LogSocketManager()
 }
 void LogSocketManager::add_buffer(LogBuffer *log_buffer)
 {
+	if (unlikely(_cancle_flag == 1)) {
+		return;
+	}
+	
 	_log_buffer[_buffer_produce_idx].add_buffer(log_buffer);
 }
 void LogSocketManager::increase_log_socket(LogSocket *log_socket)
@@ -184,17 +190,6 @@ void LogSocketManager::increase_log_socket(LogSocket *log_socket)
 	_log_socket_list[_list_num] = log_socket;
 	_list_num++;
 }
-
-//LogTime aa(400);
-
-
-DtTrace a("a");
-DtTrace b("b");
-DtTrace c("c");
-DtTrace d("d");
-
-
-
 
 void LogSocketManager::flush_buffer()
 {
@@ -206,27 +201,12 @@ void LogSocketManager::flush_buffer()
 		return;
 	}
 
-	//aa.update_prev_time();
 	for (int i = 0; i < _list_num; i++) {
-		a.update_prev_time();
 		_log_socket_list[i]->add_buffer("\n", 1);
-		a.update_cur_time();
-		a.update_data();
-
-		b.update_prev_time();
-		b.update_cur_time();
 		_log_socket_list[i]->write_buffer();
-		b.update_data();
-
-		c.update_prev_time();
 		_log_socket_list[i]->clear_buffer();
-		c.update_cur_time();
-		c.update_data();	
 	}
-	//aa.update_cur_time();
-	//aa.ff();
 
-	//printf("produce idx: %d\n", _buffer_produce_idx);
 	_buffer_produce_idx = next_produce_idx;
 }
 void LogSocketManager::send()
@@ -291,56 +271,60 @@ void LogSocketManager::cancel_all_send()
 	io_uring_queue_exit(&_ring);
 }
 
-// Log g_dt_log("dt");
 
-// LogFile::LogFile(const char *name)
-// 	: _name(name)
-// {
-// 	char path[20];
-// 	sprintf(path, "log/%s.txt", name);
+LogFile g_dt_log_file("dt");
 
-// 	OPEN_FD(_fd, path, O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, 0666);
+LogFile *g_log_list[20];
+int g_log_list_num = 0;
 
-// 	_idx_global = g_log_list_num;
-// 	g_log_list[g_log_list_num] = this;	
+LogFile::LogFile(const char *name)
+	: _name(name)
+{
+	char path[20];
+	sprintf(path, "log/%s.txt", name);
+
+	OPEN_FD(_fd, path, O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, 0666);
+
+	_idx_global = g_log_list_num;
+	g_log_list[g_log_list_num] = this;	
 	
-// 	g_log_list_num++;
-// }
+	g_log_list_num++;
+}
 
-// LogFile::~LogFile()
-// {
-// 	close(_fd);
-// }
+LogFile::~LogFile()
+{
+	close(_fd);
+}
 
-// void LogFile::flush_log()
-// {
-// 	int ret = lio_listio(LIO_NOWAIT, _s_aiocb_list, g_log_list_num, NULL); 
-// 	if (unlikely(ret != 0)) { 
-// 		perror("lio_listio"); 
-// 		exit_program(); 
-// 	} 
-// }
-// void LogFile::write_log_file()
-// {
-// 	void *ptr = s_pool.get_memory(_buffer_idx);
-// 	memcpy(ptr, _buffer, _buffer_idx);
-// 	memset(&_s_aiocb[_s_idx], 0, sizeof(struct aiocb));
+void LogFile::flush_buffer()
+{
+	int ret = lio_listio(LIO_NOWAIT, _s_aiocb_list, g_log_list_num, NULL); 
+	if (unlikely(ret != 0)) { 
+		perror("lio_listio"); 
+		exit_program(); 
+	} 
+}
+void LogFile::add_buffer(LogBuffer *log_buffer)
+{
+	void *ptr = s_pool.get_memory(_buffer_idx);
+	memcpy(ptr, _buffer, _buffer_idx);
+	memset(&_s_aiocb[_s_idx], 0, sizeof(struct aiocb));
 
-// 	_s_aiocb[_s_idx].aio_fildes = _fd;
-// 	_s_aiocb[_s_idx].aio_offset = _offset;
-// 	_s_aiocb[_s_idx].aio_buf = ptr;
-// 	_s_aiocb[_s_idx].aio_nbytes = _buffer_idx;
-// 	_s_aiocb[_s_idx].aio_lio_opcode = LIO_WRITE;
+	_s_aiocb[_s_idx].aio_fildes = _fd;
+	_s_aiocb[_s_idx].aio_offset = _offset;
+	_s_aiocb[_s_idx].aio_buf = ptr;
+	_s_aiocb[_s_idx].aio_nbytes = _buffer_idx;
+	_s_aiocb[_s_idx].aio_lio_opcode = LIO_WRITE;
 
-// 	_s_aiocb_list[_idx_global] = &_s_aiocb[_s_idx];
+	_s_aiocb_list[_idx_global] = &_s_aiocb[_s_idx];
 
-// 	_offset += _buffer_idx;
-// 	_s_idx = (_s_idx + 1) & (LOGFILE_BUF_SIZE - 1);
+	_offset += _buffer_idx;
+	_s_idx = (_s_idx + 1) & (LOGFILE_BUF_SIZE - 1);
 
-// 	_buffer_idx = 0;
-// 	_buffer[0] = '\0';
-// }
+	_buffer_idx = 0;
+	_buffer[0] = '\0';
+}
 
-// struct aiocb Log::_s_aiocb[LOGFILE_BUF_SIZE];
-// struct aiocb *Log::_s_aiocb_list[LOGFILE_BUF_SIZE];
-// int Log::_s_idx = 0;
+struct aiocb LogFile::_s_aiocb[LOGFILE_BUF_SIZE];
+struct aiocb *LogFile::_s_aiocb_list[LOGFILE_BUF_SIZE];
+int LogFile::_s_idx = 0;

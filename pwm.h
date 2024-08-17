@@ -8,7 +8,7 @@
 
 class Pwm 
 {
-    friend void exit_Pwm(Pwm *pwm);
+    friend int exit_Pwm(Pwm *pwm);
 public:
     Pwm(int num);
     ~Pwm();
@@ -25,8 +25,6 @@ private:
     int _n;
     char _path[30];
 };
-
-void exit_pwm(Pwm *pwm);
 
 #endif 
 

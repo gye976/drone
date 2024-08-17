@@ -3,18 +3,23 @@
 
 #define PATH_PWM "/sys/class/pwm/pwmchip0"
 
-void exit_Pwm(Pwm *pwm)
+int exit_Pwm(Pwm *pwm)
 {
 	if (-1 == write(pwm->_duty_cycle_fd, "1000000", strlen("1000000")))
 	{
 		perror("exit_pwm fail");
+		return -1;
 	}
+
+	return 0;
 }
-INIT_EXIT(Pwm);
+DEFINE_EXIT(Pwm);
 
 Pwm::Pwm(int num)
 	: _duty_cycle(1000000), _n(num)
 {
+	INIT_EXIT_IN_CTOR(Pwm);
+
 	int export_fd;
 	OPEN_FD(export_fd, PATH_PWM "/export", O_WRONLY);
 	char buf[3];
@@ -40,8 +45,6 @@ Pwm::Pwm(int num)
 	open_paths_fd(&_duty_cycle_fd, _path, "/duty_cycle", O_RDWR);
 	open_paths_fd(&_enable_fd, _path, "/enable", O_RDWR);
 	open_paths_fd(&_polarity_fd, _path, "/polarity", O_RDWR);
-
-	ADD_EXIT(Pwm);
 
 	/* 20000000(ns) = 2*10^7, -> 20ms*/
 	if (-1 == write(_period_fd, "20000000", strlen("20000000")))

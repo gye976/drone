@@ -25,22 +25,29 @@
 		}                                       \
 	} while (0)
 
-#define INIT_EXIT(type) \
+#define DEFINE_EXIT(type) \
 	type *__exit_##type##_instance_list[20]; \
 	int __exit_##type##_instance_num = 0; \
 \
 	void __exit_##type##_global_func() \
 	{ \
-		printf("  !!!exit_"#type" entry\n"); \
+		printf("    @@@exit_"#type" entry\n"); \
+		printf("    "#type" inst num:%d\n", __exit_##type##_instance_num); \
+\
 		for (int i__ = 0; i__ < __exit_##type##_instance_num; i__++) { \
-			printf("    ===exit_"#type" instance%d entry\n", i__); \
-			exit_##type(__exit_##type##_instance_list[i__]); \
-			printf("    ===exit_"#type" instance%d exit\n\n", i__); \
+			printf("        ===exit_"#type" instance%d entry\n", i__); \
+\
+			if (exit_##type(__exit_##type##_instance_list[i__]) != 0) { \
+				printf("!!!!!!!!!!!!!!!!!!!inst%d exit ERROR\n", i__); \
+			} \
+\
+			printf("        ===exit_"#type" instance%d exit\n\n\n", i__); \
 		} \
-		printf("  !!!exit_"#type" exit\n"); \
+\
+		printf("    @@@exit_"#type" exit\n\n\n\n\n"); \
 	} 
 
-#define ADD_EXIT(type) \
+#define INIT_EXIT_IN_CTOR(type) \
 do { \
 	extern void (*g_exit_func_global_list[20])(); \
 	extern int g_exit_func_global_num; \
@@ -54,8 +61,6 @@ do { \
 	} \
 	__exit_##type##_instance_list[__exit_##type##_instance_num++] = this; \
 } while (0)
-
-
 #define exit_program()                            \
 	extern void __exit_program();                 \
 	do                                            \
@@ -64,6 +69,7 @@ do { \
 			   __FILE__, __FUNCTION__, __LINE__); \
 		__exit_program();                         \
 	} while (0)
+
 
 inline void open_paths_fd(int *fd, const char *root_path, const char *append_path, int flag)
 {

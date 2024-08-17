@@ -19,15 +19,17 @@
 
 // AVG(t) = B * Avg(t-1) + (1 - B)*V(t)
 
-void exit_Mpu6050(Mpu6050 *mpu6050)
+int exit_Mpu6050(Mpu6050 *mpu6050)
 {
 	(void)mpu6050;
+
+	return 0;
 }
-INIT_EXIT(Mpu6050);
+DEFINE_EXIT(Mpu6050);
 
 Mpu6050::Mpu6050()
 {
-	ADD_EXIT(Mpu6050);
+	INIT_EXIT_IN_CTOR(Mpu6050);
 
 	OPEN_FD(_i2c_fd, "/dev/i2c-2", O_RDWR);
 

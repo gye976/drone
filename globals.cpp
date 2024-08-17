@@ -46,13 +46,15 @@ void __exit_program()
 {    
 	static bool s_exit_flag = 0;
 	if (s_exit_flag == 1) {
-		while (1) {
-			usleep(1000);
-		}
+		return;
+		// while (1) {
+		// 	usleep(1000);
+		// }
 	}
 	s_exit_flag = 1;
 
 	printf("###exit_program entry\n");
+	printf("###exit class num:%d\n", g_exit_func_global_num);
 
 	for (int i = 0; i < g_exit_func_global_num; i++) {
 		g_exit_func_global_list[i]();

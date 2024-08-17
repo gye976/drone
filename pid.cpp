@@ -8,18 +8,20 @@
 #include "drone.h"
 #include "mpu6050.h"
 
-void exit_Pid(Pid *pid)
+int exit_Pid(Pid *pid)
 {
 	pid->print_parameter();
 	pid->write_meta_file();
+
+	return 0;
 }
-INIT_EXIT(Pid);
+DEFINE_EXIT(Pid);
 
 Pid::Pid()
 {
-	read_meta_file();
+	INIT_EXIT_IN_CTOR(Pid);
 
-	ADD_EXIT(Pid);
+	read_meta_file();
 }
 void Pid::print_parameter()
 {

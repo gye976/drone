@@ -8,16 +8,18 @@
 #include "mpu6050.h"
 #include "globals.h"
 
-void exit_DtTrace(DtTrace *dt_trace)
+int exit_DtTrace(DtTrace *dt_trace)
 {
     dt_trace->print_data();
+
+    return 0;
 }
-INIT_EXIT(DtTrace);
+DEFINE_EXIT(DtTrace);
 
 DtTrace::DtTrace(const char *name)
     : _name(name)
 {
-    ADD_EXIT(DtTrace);
+    INIT_EXIT_IN_CTOR(DtTrace);
 }
 DtTrace::~DtTrace()
 {

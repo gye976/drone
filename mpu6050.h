@@ -54,7 +54,7 @@ static inline int16_t be16toh_s(int16_t be_val)
 
 class Mpu6050 
 {
-	friend void exit_Mpu6050(Mpu6050 *mpu6050);
+	friend int exit_Mpu6050(Mpu6050 *mpu6050);
 	
 public:
 	inline void gryo_rate_bias(float gyro_rate[])

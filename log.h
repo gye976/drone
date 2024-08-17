@@ -114,15 +114,13 @@ private:
 // class LogFile
 // {
 // public:	
-// 	Log(const char *name);
-// 	~Log();
+// 	LogFile(const char *name);
+// 	~LogFile();
 
 // 	static void flush_log();
 	
-// 	void add_log_queue(const char *format, ...);
-// 	void write_log();
-// 	void write_log_file();
-// 	void write_log_socket();
+// 	void add_buffer(LogBuffer *log_buffer);
+// 	static void flush_buffer();
 
 // private:
 // 	static struct aiocb _s_aiocb[LOGFILE_BUF_SIZE];
@@ -138,7 +136,6 @@ private:
 // 	char _buffer[2048];
 // 	int _buffer_idx = 0;
 // };
-
 
 #define ADD_LOG_ARRAY_SOCKET(name, num, format, data) \
 do { \
@@ -180,7 +177,19 @@ do { \
 	g_log_socket_manager.flush_buffer(); \
 } while(0)
 
+
+// #define FLUSH_LOG_FILE() \
+// do { \
+// 	extern LogFile *g_log_list[20]; \
+// \
+// 	for (int __i = 0; __i < g_log_list_num; __i++) { \
+// 		g_log_list[__i].flush_buffer(); \
+// 	} \
+// } while(0)
+
+
 extern LogSocketManager g_log_socket_manager;
 pthread_t make_socket_thread(LogSocketManager *log_socket_manager);
+
 
 #endif
