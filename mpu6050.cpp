@@ -39,8 +39,14 @@ Mpu6050::Mpu6050()
         exit_program();
     }
 
+    // reset device
+    char config[2] = {PWR_MGMT_1, 0x40};
+    if (write(_i2c_fd, config, 2) != 2) {
+        perror("Failed to reset MPU6050");
+        exit_program();
+    }
     // Initialize MPU6050: Set Power Management 1 register to 0 to wake up the sensor
-    char config[2] = {PWR_MGMT_1, 0};
+    config[1] = 0;
     if (write(_i2c_fd, config, 2) != 2) {
         perror("Failed to initialize MPU6050");
         exit_program();
@@ -71,6 +77,20 @@ Mpu6050::Mpu6050()
     char smplrt_div_config[2] = {SMPLRT_DIV, 0}; // 0 sets sample rate to 1 kHz
     if (write(_i2c_fd, smplrt_div_config, 2) != 2) {
         perror("Failed to set sample rate divider");
+        exit_program();
+    }
+
+    // 0x70: gyro XYZ, 0x08: acc XYZ
+    char fife_en_list[2] = {FIFO_EN, 0x78};
+    if (write(_i2c_fd, fife_en_list, 2) != 2) {
+        perror("Failed to set fife_en_list");
+        exit_program();
+    }
+
+    // 0x40: fifo enable, 0x04: reset after reading fifo
+    char user_ctrl[2] = {USER_CTRL, 0x44};
+    if (write(_i2c_fd, user_ctrl, 2) != 2) {
+        perror("Failed to set user_ctrl(fifo)");
         exit_program();
     }
 

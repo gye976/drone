@@ -34,8 +34,19 @@ void Drone::loop()
 	LogTime log_time(1000000);
 
 	size_t cycle = 0;
+
+	while (cycle < 500) {
+		_mpu6050.do_mpu6050();
+		cycle++;
+	}
+
+	struct timespec mono_loop_ts_cur;
+	struct timespec mono_loop_ts_prev;
+
 	while (1)
 	{
+		update_new_mono_time(&mono_loop_ts_prev);
+
 		log_time.update_prev_time();
 		
 		TRACE_FUNC_DT(dt_mpu6050, _mpu6050.do_mpu6050);
@@ -72,6 +83,13 @@ void Drone::loop()
 
 		log_time.update_cur_time();
 		log_time.ff();
+
+		update_new_mono_time(&mono_loop_ts_cur);
+		float dt = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
+		if (unlikely(dt > 0.0025)) {
+			printf("!!!!!!!!!!dt over. %f\n", dt);
+			exit_program();
+		} 
 	}
 }
 void Drone::set_hovering()

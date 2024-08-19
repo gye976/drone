@@ -1,6 +1,8 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include "global_predefined.h"
+
 #include <arpa/inet.h>
 #include <liburing.h>
 #include <stdarg.h>
@@ -75,9 +77,11 @@ private:
 	LogBuffer _log_buffer;
 };
 
-#define MANAGER_BUFFER_SIZE	16
+#define MANAGER_BUFFER_SIZE	8
 class LogSocketManager
 {
+	friend int exit_LogSocketManager(LogSocketManager *log_socket_manager);
+	
 public:
 	LogSocketManager();
 
@@ -137,6 +141,45 @@ private:
 // 	int _buffer_idx = 0;
 // };
 
+
+#ifdef NO_SOCKET
+
+static inline void do_nothing(void *a, ...)
+{
+	(void)a;
+}
+
+#define ADD_LOG_ARRAY_SOCKET(name, num, format, data) \
+do { \
+	extern LogSocket g_##name##_log_socket; \
+	do_nothing((void*)&g_##name##_log_socket, num, format, data); \
+} while(0)
+
+
+#define ADD_LOG_ALL_SOCKET(format, ...) \
+do { \
+	do_nothing((void*)&format, ##__VA_ARGS__); \
+} while(0)
+
+
+#define ADD_LOG_SOCKET(name, format, ...) \
+do { \
+	extern LogSocket g_##name##_log_socket; \
+	do_nothing((void*)&g_##name##_log_socket, format, ##__VA_ARGS__); \
+} while(0)
+
+
+#define FLUSH_LOG_SOCKET() \
+do { \
+} while(0)
+
+
+#define FLUSH_LOG_FILE() \
+do { \
+} while(0)
+
+#else
+
 #define ADD_LOG_ARRAY_SOCKET(name, num, format, data) \
 do { \
 	for (int i__ = 0; i__ < num - 1; i__++) { \
@@ -178,15 +221,16 @@ do { \
 } while(0)
 
 
-// #define FLUSH_LOG_FILE() \
-// do { \
-// 	extern LogFile *g_log_list[20]; \
-// \
-// 	for (int __i = 0; __i < g_log_list_num; __i++) { \
-// 		g_log_list[__i].flush_buffer(); \
-// 	} \
-// } while(0)
+#define FLUSH_LOG_FILE() \
+do { \
+	extern LogFile *g_log_list[20]; \
+\
+	for (int __i = 0; __i < g_log_list_num; __i++) { \
+		g_log_list[__i].flush_buffer(); \
+	} \
+} while(0)
 
+#endif
 
 extern LogSocketManager g_log_socket_manager;
 pthread_t make_socket_thread(LogSocketManager *log_socket_manager);
