@@ -46,7 +46,7 @@ enum {
 class Drone 
 {
 public:
-    Drone();
+    Drone(double loop_dt);
     ~Drone();
 
     inline Mpu6050* get_mpu6050()
@@ -100,18 +100,19 @@ public:
         _throttle = t;
        // _pid.set_limit(t);
     }   
-    inline void toggle_mpu6050_f()
-    {
-        _pr_mpu6050_f = !_pr_mpu6050_f;
-    }
-    inline void toggle_pid_f()
-    {
-        _pr_pid_f = !_pr_pid_f;
-    }
-    inline void toggle_pwm_f()
-    {
-        _pr_pwm_f = !_pr_pwm_f;
-    }
+    // inline void toggle_mpu6050_f()
+    // {
+    //     _pr_mpu6050_f = !_pr_mpu6050_f;
+    // }
+    // inline void toggle_pid_f()
+    // {
+    //     _pr_pid_f = !_pr_pid_f;
+    // }
+    // inline void toggle_pwm_f()
+    // {
+    //     _pr_pwm_f = !_pr_pwm_f;
+    // }
+    void loop_logic();
     void loop();
     void print_parameter();
     void log_data();
@@ -137,13 +138,10 @@ private:
     Mpu6050 _mpu6050;
     Pwm _pwm[NUM_MOTOR];
     Pid _pid;
-    //Time _time;
 
     pthread_mutex_t _mutex;
 
-    bool _pr_mpu6050_f = false; 
-    bool _pr_pid_f = false;
-    bool _pr_pwm_f = false;
+    double _loop_dt;
 };
 
 void *drone_loop(void *args);

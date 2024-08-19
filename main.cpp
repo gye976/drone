@@ -8,8 +8,8 @@
 #include "user_front.h"
 #include "drone.h"
 
-#define THREADS_NUM 3
-Drone g_drone;
+#define THREADS_NUM	4	 
+Drone g_drone(0.0015);
 pthread_t g_threads[THREADS_NUM];
 
 int main() 
@@ -30,9 +30,13 @@ int main()
 		
 	////////////////////////////////
 
+	Mpu6050 *mpu6050 = g_drone.get_mpu6050();
+
 	g_threads[0] = make_user_front_thread(&g_drone);
 	g_threads[1] = make_socket_thread(&g_log_socket_manager); 
-	g_threads[2] = make_drone_thread(&g_drone);
+	g_threads[2] = make_mpu6050_read_hwfifo_thread(mpu6050);
+	g_threads[3] = make_drone_thread(&g_drone);
+
 
 	if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
 		perror("mlockall\n");

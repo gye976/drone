@@ -3,6 +3,10 @@
 
 #include <math.h>
 
+#define INT_ENABLE	0x38
+#define INT_STATUS	0x3A
+#define FIFO_OVERFLOW_BIT	0x10
+
 #define MPU6050_ADDR 0x68 // MPU6050 I2C address
 #define PWR_MGMT_1 0x6B // Power Management 1 register
 #define CONFIG 0x1A // DLPF Configuration register
@@ -77,6 +81,11 @@ public:
 	}
 	inline void acc_to_angle(float acc[], float acc_angle[])
 	{
+		if (acc[Z] == 0.0 && (acc[X] == 0.0f || acc[Y] == 0.0f)) {
+			printf("nan\n");
+			exit_program();
+		}
+
 		acc_angle[PITCH] = atan(acc[Y] / sqrt(pow(acc[X],2) + pow(acc[Z],2))) \
 			* RADIANS_TO_DEGREES;
 
@@ -105,11 +114,16 @@ public:
 	Mpu6050();
 	~Mpu6050();
 
+	void read_raw(float acc[], float gyro[]);
+	void read_fifo(float acc[], float gyro[]);
+	void read_hwfifo();
+	int check_hwfifo_overflow();
+	void reset_hwfifo();
+
 	void do_mpu6050();
 	void print_data();
 	void calibrate(int n, float acc_angle_mean[], float gyro_rate_mean[]);
 private:
-	void read_raw(float acc[], float gyro[]);
 	void set_irq_thread_high_priority();
 
 	float _gyro_rate_bias[NUM_AXIS] = { -1.12, 0.345, 0.85 };
@@ -129,7 +143,14 @@ private:
 	// static float _s_afs[4] = {16384.0, 8192.0, 4096.0, 2048.0};
 	// static int _s_afs_i = 0;
 	int _i2c_fd;
+
+#define FIFO_SIZE 1024
+	char _fifo[FIFO_SIZE * 12]; 
+	int _consume_idx = 0; /* 0 ~ (FIFO_SIZE - 1)*/
+	int _produce_idx = 0;
 };
+
+pthread_t make_mpu6050_read_hwfifo_thread(Mpu6050 *mpu6050);
 
 #endif 
 

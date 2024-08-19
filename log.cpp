@@ -49,7 +49,7 @@ pthread_t make_socket_thread(LogSocketManager *log_socket_manager)
 
 #endif
 
-static Pool s_pool(14);
+//static Pool s_pool(14);
 
 LogSocketManager g_log_socket_manager;
 

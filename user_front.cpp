@@ -129,15 +129,15 @@ void cmd_debug_flag(Drone *drone)
 		return;
 	}
 
-	if (strcmp(buf, "mpu6050") == 0) {
-		drone->toggle_mpu6050_f();
-	}
-	if (strcmp(buf, "pid") == 0) {
-		drone->toggle_pid_f();
-	}
-	if (strcmp(buf, "pwm") == 0) {
-		drone->toggle_pwm_f();
-	}
+	// if (strcmp(buf, "mpu6050") == 0) {
+	// 	drone->toggle_mpu6050_f();
+	// }
+	// if (strcmp(buf, "pid") == 0) {
+	// 	drone->toggle_pid_f();
+	// }
+	// if (strcmp(buf, "pwm") == 0) {
+	// 	drone->toggle_pwm_f();
+	// }
 
 	resume_user(drone);
 }

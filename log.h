@@ -77,7 +77,7 @@ private:
 	LogBuffer _log_buffer;
 };
 
-#define MANAGER_BUFFER_SIZE	8
+#define MANAGER_BUFFER_SIZE	64
 class LogSocketManager
 {
 	friend int exit_LogSocketManager(LogSocketManager *log_socket_manager);

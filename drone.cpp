@@ -10,8 +10,9 @@
 #include "timer.h"
 #include "user_front.h"
 
-Drone::Drone()
+Drone::Drone(double loop_dt)
 	: _pwm{Pwm(1), Pwm(2), Pwm(3), Pwm(4)}
+	, _loop_dt(loop_dt)
 {
 	pthread_mutex_init(&_mutex, NULL);
 }
@@ -20,36 +21,16 @@ Drone::~Drone()
 	pthread_mutex_destroy(&_mutex);
 }
 
-void Drone::loop()
+DtTrace dt_mpu6050("mpu6050");
+DtTrace dt_socket_flush("socket_flush");
+
+void Drone::loop_logic()
 {
 	float *angle = _mpu6050.get_angle();
 	float *gyro_rate = _mpu6050.get_gyro_rate();
 
-	// float cur_angle[3];
-	// float cur_gyro_rate[3];
-	// _mpu6050.calibrate(30, cur_angle, cur_gyro_rate);
 
-	DtTrace dt_mpu6050("mpu6050");
-	DtTrace dt_socket_flush("socket_flush");
-	LogTime log_time(1000000);
-
-	size_t cycle = 0;
-
-	while (cycle < 500) {
-		_mpu6050.do_mpu6050();
-		cycle++;
-	}
-
-	struct timespec mono_loop_ts_cur;
-	struct timespec mono_loop_ts_prev;
-
-	while (1)
-	{
-		update_new_mono_time(&mono_loop_ts_prev);
-
-		log_time.update_prev_time();
-		
-		TRACE_FUNC_DT(dt_mpu6050, _mpu6050.do_mpu6050);
+	TRACE_FUNC_DT(dt_mpu6050, _mpu6050.do_mpu6050);
 
 		// int ret = trylock_drone();
 		// if (ret == 0) {
@@ -65,31 +46,57 @@ void Drone::loop()
 		// 	unlock_drone();
 		// }
 
-		set_hovering();
-		// update_target();
+	set_hovering();
+	// update_target();
 
-		log_data();
+	log_data();
 
-		update_pid_out(angle, gyro_rate);
+	update_pid_out(angle, gyro_rate);
 
-		set_motor_speed();
-		cycle++;
+	set_motor_speed();
+}
+void Drone::loop()
+{
+	size_t cycle = 0;
 
-		dt_socket_flush.update_prev_time();
+	usleep(50000);
 
-		FLUSH_LOG_SOCKET();
-		dt_socket_flush.update_cur_time();
-		dt_socket_flush.update_data();
+	struct timespec mono_loop_ts_cur;
+	struct timespec mono_loop_ts_prev;
 
-		log_time.update_cur_time();
-		log_time.ff();
+	// struct timespec loop_start_ts;
+	// loop_start_ts.tv_sec = 0;
+	// loop_start_ts.tv_nsec = _loop_dt * 500 * 1000 * 1000;
+
+	update_new_mono_time(&mono_loop_ts_prev);
+
+	while (1)
+	{
+		loop_logic();
 
 		update_new_mono_time(&mono_loop_ts_cur);
 		float dt = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
-		if (unlikely(dt > 0.0025)) {
-			printf("!!!!!!!!!!dt over. %f\n", dt);
+		if (unlikely(dt > _loop_dt)) {
+			printf("!!!!!!!!!!loop_dt over, dt:%f\n", dt);
 			exit_program();
-		} 
+		} else {
+			struct timespec ts;
+			ts.tv_sec = 0;
+			ts.tv_nsec =  (_loop_dt - dt) * 1000 * 1000 * 1000;
+
+			nanosleep(&ts, NULL);
+			// update_new_mono_time(&mono_loop_ts_cur);
+			// dt = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
+		}
+		update_new_mono_time(&mono_loop_ts_prev);
+
+		ADD_LOG_SOCKET(dt, "%f", dt);
+		cycle++;
+
+		dt_socket_flush.update_prev_time();
+		FLUSH_LOG_SOCKET();
+		dt_socket_flush.update_cur_time();
+		dt_socket_flush.update_data();
 	}
 }
 void Drone::set_hovering()
