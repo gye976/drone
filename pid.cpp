@@ -17,7 +17,8 @@ int exit_Pid(Pid *pid)
 }
 DEFINE_EXIT(Pid);
 
-Pid::Pid()
+Pid::Pid(float dt)
+	: _dt(dt)
 {
 	INIT_EXIT_IN_CTOR(Pid);
 
@@ -36,7 +37,7 @@ void Pid::calc_angle_pid(int axis, float angle_in, float angle_target, float rat
 	float d_error_per_dt = rate_in; 
 
 	_term[0][axis][P] = _gain[0][P] * error;
-	_term[0][axis][I] += _gain[0][I] * error * DT; // to do: dt
+	_term[0][axis][I] += _gain[0][I] * error * _dt; // to do: dt
 	_term[0][axis][D] = (-1) * _gain[0][D] * d_error_per_dt; // to do: /dt?
 
 	if (_term[0][axis][I] > _iterm_max[0]) {
@@ -56,10 +57,10 @@ void Pid::calc_rate_pid(int axis, float rate_in, float rate_target, float *out)
 
 	float error = rate_target - rate_in;
 	//float d_error = *error - *error_prev; cause overshoot.
-	float d_error_per_dt = (rate_in - rate_in_prev[axis]) / DT; 
+	float d_error_per_dt = (rate_in - rate_in_prev[axis]) / _dt; 
 
 	_term[1][axis][P] = _gain[1][P] * error;
-	_term[1][axis][I] += _gain[1][I] * error * DT; // to do: dt
+	_term[1][axis][I] += _gain[1][I] * error * _dt; // to do: dt
 	_term[1][axis][D] = (-1) * _gain[1][D] * d_error_per_dt;
 
 	if (_term[1][axis][I] > _iterm_max[1]) {

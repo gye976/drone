@@ -4,51 +4,6 @@
 
 #include "timer.h"
 
-#ifdef NO_SOCKET 
-
-pthread_t make_socket_thread(LogSocketManager *log_socket_manager)
-{    
-	(void)log_socket_manager;
-
-	return (pthread_t)NULL;
-}
-
-#else
-
-void *send_socket_loop(void *arg)
-{
-	LogSocketManager *log_socket_manager = (LogSocketManager*)arg;
-
-	while (log_socket_manager->check_cancle_flag() == 0) {
-		log_socket_manager->send();
-	}
-
-	return NULL; 
-}
-
-pthread_t make_socket_thread(LogSocketManager *log_socket_manager)
-{    
-	pthread_t thread;
-	if (pthread_create(&thread, NULL, send_socket_loop, log_socket_manager) != 0) {
-		perror("make_socket_thread ");
-		exit_program();
-	}
-	pthread_setname_np(thread, "gye-socket");
-
-	struct sched_param param = {
-		.sched_priority = 75,
-	};
-	if (pthread_setschedparam(thread, SCHED_RR, &param) != 0)
-	{
-		perror("make_socket_thread setschedparam");
-		exit_program();
-	}
-
-	return thread;
-}
-
-#endif
-
 //static Pool s_pool(14);
 
 LogSocketManager g_log_socket_manager;
@@ -359,3 +314,25 @@ void LogSocketManager::cancel_all_send()
 // struct aiocb LogFile::_s_aiocb[LOGFILE_BUF_SIZE];
 // struct aiocb *LogFile::_s_aiocb_list[LOGFILE_BUF_SIZE];
 // int LogFile::_s_idx = 0;
+
+
+
+void *send_socket_loop(void *arg)
+{
+	LogSocketManager *log_socket_manager = (LogSocketManager*)arg;
+
+	struct sched_param param = {
+		.sched_priority = 75,
+	};
+	if (sched_setscheduler(0, SCHED_RR, &param) != 0)
+	{
+		perror("send_socket_loop, sched_setscheduler");
+		exit_program();
+	}
+
+	while (log_socket_manager->check_cancle_flag() == 0) {
+		log_socket_manager->send();
+	}
+
+	return NULL; 
+}

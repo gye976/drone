@@ -46,7 +46,7 @@ enum {
 class Drone 
 {
 public:
-    Drone(double loop_dt);
+    Drone(float loop_dt);
     ~Drone();
 
     inline Mpu6050* get_mpu6050()
@@ -124,16 +124,7 @@ private:
     void set_hovering();
     void up(int duty);
 
-    int _pitch = 0, _roll = 0, _yaw = 0;
-    int _throttle = 0;
-
-    float _angle_target[NUM_AXIS] =  { 0, } ;
-    float _angle_error[NUM_AXIS] = { 0, };
-
-    float _rate_target[NUM_AXIS] = { 0, };
-    float _rate_error[NUM_AXIS] = { 0, };
-
-    //float _target_height = 0.0f;
+    MakeThread *_makethread;
 
     Mpu6050 _mpu6050;
     Pwm _pwm[NUM_MOTOR];
@@ -141,11 +132,20 @@ private:
 
     pthread_mutex_t _mutex;
 
-    double _loop_dt;
+    float _loop_dt;
+
+    float _angle_target[NUM_AXIS] =  { 0, } ;
+    float _angle_error[NUM_AXIS] = { 0, };
+
+    float _rate_target[NUM_AXIS] = { 0, };
+    float _rate_error[NUM_AXIS] = { 0, };
+
+    int _pitch = 0, _roll = 0, _yaw = 0;
+    int _throttle = 0;
 };
 
-void *drone_loop(void *args);
-pthread_t make_drone_thread(Drone *drone);
+void drone_do_once(void *drone);
+void drone_loop(void *drone);
 
 #endif 
 

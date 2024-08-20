@@ -98,6 +98,54 @@ struct sched_attr
 	uint64_t sched_period;
 };
 
+class MakeThread
+{
+public:
+	MakeThread(const char *name, void *(*_thread_func)(void *arg), void *arg);
+	pthread_t make_thread();
+	
+	inline void stop_thread()
+	{
+		_stop_flag = 1;
+	}
+	inline bool check_stop_flag() 
+	{
+		return _stop_flag;
+	}
+private:
+	void *(*_thread_func)(void *arg);
+	const char* _name;	
+	void *_arg;
+	bool _stop_flag = 0;
+};
+
+#define DEFINE_THREAD(name, thread_func, do_once_func, arg) \
+\
+extern void *(__##name##_thread_func)(void *__arg); \
+MakeThread g_##name##_thread("gye-"#name, __##name##_thread_func, arg); \
+\
+void (__##name##_thread_loop)(void *__arg) \
+{ \
+	while (1) { \
+		if (unlikely(g_##name##_thread.check_stop_flag() == 1)) { \
+			while (1); \
+		} \
+\
+		thread_func(__arg); \
+	} \
+}\
+void *(__##name##_thread_func)(void *__arg) \
+{ \
+	if (do_once_func != NULL) \
+		do_once_func(__arg); \
+\
+	__##name##_thread_loop(__arg); \
+\
+	return NULL; \
+} 
+
+void stop_all_threads();
+
 int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int flags);
 int sched_getattr(pid_t pid, struct sched_attr *attr, unsigned int size, unsigned int flags);
 

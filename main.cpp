@@ -8,9 +8,17 @@
 #include "user_front.h"
 #include "drone.h"
 
-#define THREADS_NUM	4	 
+
 Drone g_drone(0.0015);
-pthread_t g_threads[THREADS_NUM];
+
+DEFINE_THREAD(drone, drone_loop, drone_do_once, &g_drone);
+
+DEFINE_THREAD(user, user_loop, user_do_once, &g_drone);
+
+// DEFINE_THREAD2(drone, drone_loop, init_drone, (void*)&g_drone);
+#ifndef NO_SOCKET
+	MakeThread socket_thread("gye-socket", send_socket_loop, NULL, &g_drone);
+#endif
 
 int main() 
 {
@@ -30,21 +38,24 @@ int main()
 		
 	////////////////////////////////
 
-	Mpu6050 *mpu6050 = g_drone.get_mpu6050();
+	pthread_t threads[10];
 
-	g_threads[0] = make_user_front_thread(&g_drone);
-	g_threads[1] = make_socket_thread(&g_log_socket_manager); 
-	g_threads[2] = make_mpu6050_read_hwfifo_thread(mpu6050);
-	g_threads[3] = make_drone_thread(&g_drone);
+	//Mpu6050 *mpu6050 = g_drone.get_mpu6050();
+	
+	threads[0] = g_user_thread.make_thread();
+	threads[1] = g_drone_thread.make_thread();
+// 	threads[2] = make_drone_thread(&drone);
 
+// 	threads[3] = make_mpu6050_read_hwfifo_thread(mpu6050);
 
 	if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
 		perror("mlockall\n");
 		exit_program();
 	}
 
-	for (int i = 0; i < THREADS_NUM; i++) {
-        	if (pthread_join(g_threads[i], NULL) != 0) {
+	extern int g_threads_num;
+	for (int i = 0; i < g_threads_num; i++) {
+        	if (pthread_join(threads[i], NULL) != 0) {
 				fprintf(stderr, "threads[%d], ", i);
 				perror("Failed to join thread");
 	        }

@@ -10,7 +10,8 @@
 
 int exit_DtTrace(DtTrace *dt_trace)
 {
-    dt_trace->print_data();
+    if (dt_trace->_num != 0)
+        dt_trace->print_data();
 
     return 0;
 }

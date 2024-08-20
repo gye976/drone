@@ -1,10 +1,18 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#ifndef NO_DEBUG 
+#ifdef _DEBUG_ 
 
-extern bool g_debug_flag;
-extern bool g_trace_func_flag;
+// extern bool g_debug_flag;
+// extern bool g_trace_func_flag;
+
+#define mark_func(func, ...) \
+do { \
+    printf("------"#func" entry\n"); \
+    func(__VA_ARGS__); \
+    printf("------"#func" exit\n"); \
+ } while(0)
+
 
     #define dbg_print(fmt, ...) \
     do { \
@@ -24,12 +32,7 @@ extern bool g_trace_func_flag;
 
 #endif
 
-#define mark_func(func, ...) \
-do { \
-    printf("------"#func" entry\n"); \
-    func(__VA_ARGS__); \
-    printf("------"#func" exit\n"); \
- } while(0)
+
 
 #endif 
 

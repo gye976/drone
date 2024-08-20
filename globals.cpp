@@ -18,8 +18,8 @@
 #include "globals.h"
 #include "pwm.h"
 
-bool g_debug_flag = false;
-bool g_trace_func_flag = false;
+// bool g_debug_flag = false;
+// bool g_trace_func_flag = false;
 
 int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int flags) {
     return syscall(__NR_sched_setattr, pid, attr, flags);
@@ -30,7 +30,7 @@ int sched_getattr(pid_t pid, struct sched_attr *attr, unsigned int size, unsigne
 }
 
 static void signal_handler(int signum) {
-	//TO DO signum이 종료관련일 경우 종료처리
+	//TO DO verity signum
 	printf("signum:%d\n", signum);
 
 	exit_program();
@@ -52,6 +52,8 @@ void __exit_program()
 		// }
 	}
 	s_exit_flag = 1;
+
+	stop_all_threads();
 
 	printf("###exit_program entry\n");
 	printf("###exit class num:%d\n", g_exit_func_global_num);
@@ -148,4 +150,36 @@ int get_pid_str(const char *cmd, char pid[][30])
 	return pid_num;
 
     pclose(fp);
+}
+
+MakeThread *g_threads_list[20];
+int g_threads_num = 0;
+
+void stop_all_threads()
+{
+	for (int i = 0; i < g_threads_num; i++) {
+		g_threads_list[i]->stop_thread();
+	}
+}
+
+MakeThread::MakeThread(const char *name, void *(*thread_func)(void *arg), void *arg)
+	: _thread_func(thread_func)
+	, _name(name)
+	, _arg(arg)
+{}
+
+pthread_t MakeThread::make_thread()
+{
+	pthread_t thread;
+
+	if (unlikely(pthread_create(&thread, NULL, _thread_func, _arg) != 0)) {
+		perror("init_user_front ");
+		exit_program();
+	}
+	pthread_setname_np(thread, _name);	
+
+	g_threads_list[g_threads_num] = this;
+	g_threads_num++;
+
+	return thread;
 }

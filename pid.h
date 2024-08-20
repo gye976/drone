@@ -12,7 +12,7 @@ enum e_pid {
 class Pid
 {
 public:
-	Pid();
+	Pid(float dt);
 	
 	void print_parameter();
 	void print_data(int axis);
@@ -41,6 +41,8 @@ private:
 
 	float _term[2][NUM_AXIS][3] = { 0, };
 	 // 2:angle,rate,  3:PID
+
+	float _dt;
 };
 
 #endif 

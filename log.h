@@ -233,7 +233,7 @@ do { \
 #endif
 
 extern LogSocketManager g_log_socket_manager;
-pthread_t make_socket_thread(LogSocketManager *log_socket_manager);
+void *send_socket_loop(void *arg);
 
 
 #endif

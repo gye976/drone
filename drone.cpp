@@ -10,8 +10,10 @@
 #include "timer.h"
 #include "user_front.h"
 
-Drone::Drone(double loop_dt)
-	: _pwm{Pwm(1), Pwm(2), Pwm(3), Pwm(4)}
+Drone::Drone(float loop_dt)
+	: _mpu6050(loop_dt)
+	, _pwm{Pwm(1), Pwm(2), Pwm(3), Pwm(4)}
+	, _pid(loop_dt)
 	, _loop_dt(loop_dt)
 {
 	pthread_mutex_init(&_mutex, NULL);
@@ -57,27 +59,32 @@ void Drone::loop_logic()
 }
 void Drone::loop()
 {
-	size_t cycle = 0;
+	static size_t cycle = 0;
+	static size_t over_num = 0;
 
-	usleep(50000);
+	// usleep(10000);
 
-	struct timespec mono_loop_ts_cur;
-	struct timespec mono_loop_ts_prev;
+	static struct timespec mono_loop_ts_cur;
+	static struct timespec mono_loop_ts_prev;
 
 	// struct timespec loop_start_ts;
 	// loop_start_ts.tv_sec = 0;
 	// loop_start_ts.tv_nsec = _loop_dt * 500 * 1000 * 1000;
 
+	// for (int i = 0; i < 500; i++) {
+	// 	loop_logic();
+	// }
+
 	update_new_mono_time(&mono_loop_ts_prev);
 
-	while (1)
-	{
 		loop_logic();
-
+		
 		update_new_mono_time(&mono_loop_ts_cur);
 		float dt = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
+		float dt_sleep = dt;
 		if (unlikely(dt > _loop_dt)) {
 			printf("!!!!!!!!!!loop_dt over, dt:%f\n", dt);
+			over_num++;
 			exit_program();
 		} else {
 			struct timespec ts;
@@ -85,19 +92,19 @@ void Drone::loop()
 			ts.tv_nsec =  (_loop_dt - dt) * 1000 * 1000 * 1000;
 
 			nanosleep(&ts, NULL);
-			// update_new_mono_time(&mono_loop_ts_cur);
-			// dt = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
+			update_new_mono_time(&mono_loop_ts_cur);
+			dt_sleep = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
 		}
-		update_new_mono_time(&mono_loop_ts_prev);
+		//update_new_mono_time(&mono_loop_ts_prev);
 
+		printf("%f, %f\n", dt, dt_sleep);
 		ADD_LOG_SOCKET(dt, "%f", dt);
 		cycle++;
 
-		dt_socket_flush.update_prev_time();
-		FLUSH_LOG_SOCKET();
-		dt_socket_flush.update_cur_time();
-		dt_socket_flush.update_data();
-	}
+		// dt_socket_flush.update_prev_time();
+		// FLUSH_LOG_SOCKET();
+		// dt_socket_flush.update_cur_time();
+		// dt_socket_flush.update_data();
 }
 void Drone::set_hovering()
 {
@@ -117,23 +124,23 @@ void Drone::set_motor_speed()
 	pwm_in[REAR_RIGHT] = _throttle + _yaw - _roll - _pitch;
 	pwm_in[REAR_LEFT] = _throttle - _yaw + _roll - _pitch;
 
-	dbg_print("pwm_in:\n");
+	// dbg_print("pwm_in:\n");
 	for (int i = 0; i < 4; i++) {
 		if (pwm_in[i] < 0) {
-			dbg_print("clipping to min, adjust throttle level.");
+			// dbg_print("clipping to min, adjust throttle level.");
 			pwm_in[i] = 0; 
 		} else if (pwm_in[i] > PWM_MAX - PWM_MIN) {
-			dbg_print("clipping to max, adjust throttle level.");
+			// dbg_print("clipping to max, adjust throttle level.");
 			pwm_in[i] = PWM_MAX - PWM_MIN;
 
 			printf("max, maybe bug, exit\n");
 			//exit_program();
 		}
 
-		dbg_print("  [%d]:%d \n", i, pwm_in[i]);
+		// dbg_print("  [%d]:%d \n", i, pwm_in[i]);
 		_pwm[i].set_duty_cycle(pwm_in[i] + PWM_MIN);
 	}
-	dbg_print("\n");
+	// dbg_print("\n");
 }
 
 void Drone::log_data()
@@ -172,59 +179,25 @@ void Drone::print_parameter()
 	printf("_throttle, %d\n\n", _throttle);
 }
 
-void* drone_loop(void *drone)
+// void* drone_loop(void *drone)
+// {
+// 		/* pid=0 (current thread) */
+// 	set_rt_deadline(0, 300 * 1000, 1000 * 1000, 1000 * 1000);
+
+// 	((Drone*)drone)->loop();
+
+// 	return NULL; // error
+// }
+
+void drone_do_once(void *drone)
 {
-		/* pid=0 (current thread) */
 	set_rt_deadline(0, 300 * 1000, 1000 * 1000, 1000 * 1000);
 
-	((Drone*)drone)->loop();
-
-	return NULL; // error
-}
-
-pthread_t make_drone_thread(Drone *drone)
-{    
-	pthread_t thread;
-	if (pthread_create(&thread, NULL, drone_loop, drone) != 0) {
-		perror("make_drone_thread ");
-		exit_program();
+	for (int i = 0; i < 10; i++) {
+		((Drone*)drone)->get_mpu6050()->do_mpu6050();
 	}
-	pthread_setname_np(thread, "gye-drone");
-
-    // cap_t caps = cap_get_proc();
-    // if (caps == NULL) {
-    //     perror("cap_get_proc");
-    //     exit_program();
-    // }
-
-    // cap_value_t cap_values[] = { CAP_SYS_NICE, CAP_SYS_ADMIN };
-
-    // if (cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_values, CAP_SET) == -1) {
-    //     perror("cap_set_flag(CAP_EFFECTIVE) failed");
-    //     cap_free(caps);
-    //     exit_program();
-    // }
-
-    // char *str = cap_to_text(caps, NULL);
-    // printf("str:%s\n", str);
-
-    // set_rtprio_limit();
-
-    // int max = sched_get_priority_max(SCHED_DEADLINE);
-    // if (max == -1) {
-    //     perror("sched_get_priority_max\n");
-    //     exit_program();
-    // }
-    //set_rt_deadline(thread, 150 * 1000, 2000 * 1000, 2000 * 1000);
-
-	// struct sched_param param = {
-	// 	.sched_priority = 99,
-	// };
-	// if (pthread_setschedparam(thread, SCHED_RR, &param) != 0)
-	// {
-	// 	perror("make_drone_thread");
-	// 	exit_program();
-	// }
-
-	return thread;
+}
+void drone_loop(void *drone)
+{
+	((Drone*)drone)->loop();
 }

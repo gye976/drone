@@ -32,18 +32,6 @@ static inline double timespec_to_double(struct timespec *ts)
     return time_to_double(ts->tv_sec, ts->tv_nsec);
 }
 
-// static inline float time_to_float(long s, long ns)
-// {
-//     // return (float)(s * SEC_TO_NSEC + ns) / 1000000000.0f;  /* overflow err */
-
-//     float dt = (float)s + ((float)ns / 1000000000.0f);
-//     return dt;
-// }
-// static inline float timespec_to_float(struct timespec *ts)
-// {
-//     return time_to_float(ts->tv_sec, ts->tv_nsec);
-// }
-
 class LogTime
 {
 public:
@@ -84,6 +72,7 @@ private:
 
 class DtTrace 
 {
+    friend int exit_DtTrace(DtTrace *dt_trace);
 public:     
     DtTrace(const char *name);
     ~DtTrace();

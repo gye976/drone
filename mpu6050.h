@@ -28,14 +28,12 @@
 
 #define RADIANS_TO_DEGREES 		((float)(180/3.14159))
 
-#define ACC_FS_SENSITIVITY					16384.0f
-#define GYRO_FS_SENSITIVITY					 131.0f
-
-#define DT 0.002f  //2ms
+#define ACC_FS_SENSITIVITY		8192.0f 
+#define GYRO_FS_SENSITIVITY		65.536f
 
 #define ALPHA                   0.96f
-#define A_ACC	0.2f
-#define A_GYRO	0.4f
+#define A_ACC	0.3f
+#define A_GYRO	0.5f
 
 enum enum_axis {
 	X, Y, Z, NUM_AXIS
@@ -61,6 +59,9 @@ class Mpu6050
 	friend int exit_Mpu6050(Mpu6050 *mpu6050);
 	
 public:
+	Mpu6050(float dt);
+	~Mpu6050();
+
 	inline void gryo_rate_bias(float gyro_rate[])
 	{
 		for (int i = 0; i < NUM_AXIS; i++) {
@@ -70,7 +71,7 @@ public:
 	inline void gyro_rate_to_angle(float gyro[],  float gyro_angle[])
 	{
 		for (int i = 0; i < NUM_AXIS; i++) {
-			gyro_angle[i] = _angle[i] + gyro[i] * DT;
+			gyro_angle[i] = _angle[i] + gyro[i] * _dt;
 		}
 	}
 	inline void acc_angle_bias(float acc_angle[])
@@ -111,9 +112,6 @@ public:
 		return _gyro_rate;
 	}
 
-	Mpu6050();
-	~Mpu6050();
-
 	void read_raw(float acc[], float gyro[]);
 	void read_fifo(float acc[], float gyro[]);
 	void read_hwfifo();
@@ -148,6 +146,8 @@ private:
 	char _fifo[FIFO_SIZE * 12]; 
 	int _consume_idx = 0; /* 0 ~ (FIFO_SIZE - 1)*/
 	int _produce_idx = 0;
+
+	float _dt;
 };
 
 pthread_t make_mpu6050_read_hwfifo_thread(Mpu6050 *mpu6050);

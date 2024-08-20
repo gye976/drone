@@ -28,7 +28,8 @@ int exit_Mpu6050(Mpu6050 *mpu6050)
 }
 DEFINE_EXIT(Mpu6050);
 
-Mpu6050::Mpu6050()
+Mpu6050::Mpu6050(float dt)
+	: _dt(dt)
 {
 	INIT_EXIT_IN_CTOR(Mpu6050);
 
@@ -60,15 +61,15 @@ Mpu6050::Mpu6050()
         exit_program();
     }
 
-    // Set Gyroscope sensitivity: ±250°/s (Configuration 0)
-    char gyro_config[2] = {GYRO_CONFIG, 0x00}; // 0x00 sets gyroscope sensitivity to ±250°/s
+    // Set Gyroscope sensitivity: ±500°/s (Configuration 0)
+    char gyro_config[2] = {GYRO_CONFIG, 0x01}; 
     if (write(_i2c_fd, gyro_config, 2) != 2) {
         perror("Failed to set gyroscope configuration");
         exit_program();
     }
 
-    // Set Accelerometer sensitivity: ±2g (Configuration 0)
-    char accel_config[2] = {ACCEL_CONFIG, 0x00}; // 0x00 sets accelerometer sensitivity to ±2g
+    // Set Accelerometer sensitivity: ±4g (Configuration 0)
+    char accel_config[2] = {ACCEL_CONFIG, 0x01}; 
     if (write(_i2c_fd, accel_config, 2) != 2) {
         perror("Failed to set accelerometer configuration");
         exit_program();
@@ -80,6 +81,8 @@ Mpu6050::Mpu6050()
         perror("Failed to set sample rate divider");
         exit_program();
     }
+
+#ifdef MPU6050_FIFO
 
     // 0x70: gyro XYZ, 0x08: acc XYZ
     char fife_en_list[2] = {FIFO_EN, 0x78};
@@ -94,6 +97,10 @@ Mpu6050::Mpu6050()
         perror("Failed to set user_ctrl(fifo)");
         exit_program();
     }
+
+	/* To do: fifo reset interrupt*/
+
+#endif
 
 	set_irq_thread_high_priority();
 }
@@ -153,14 +160,14 @@ void Mpu6050::read_raw(float acc[], float gyro[])
 	char reg[1] = {ACCEL_XOUT_H};
 		int ret;
 		
-		ret = write(_i2c_fd, reg, 1);
-		if (unlikely(ret != 1)) {
-			perror("read_raw, write err");
-			exit_program();
-		}
+	ret = write(_i2c_fd, reg, 1);
+	if (unlikely(ret != 1)) {
+		perror("read_raw, write err");
+		exit_program();
+	}
 		
-		ret = read(_i2c_fd, data, 14);
-		if (unlikely(ret != 14)) {
+	ret = read(_i2c_fd, data, 14);
+	if (unlikely(ret != 14)) {
 			perror("read_raw, read err");
 			exit_program();
 	}
@@ -182,8 +189,8 @@ void Mpu6050::read_raw(float acc[], float gyro[])
 	gyro[Z] = (float)gyro_z / GYRO_FS_SENSITIVITY;
 
 
-	printf("read_raw, acc: %d, %d, %d\n", accel_x,  accel_y,  accel_z);
-	printf("		gyro: %d, %d, %d\n\n", gyro_x, gyro_y, gyro_z);
+	// printf("read_raw, acc: %d, %d, %d\n", accel_x,  accel_y,  accel_z);
+	//  printf("		gyro: %d, %d, %d\n\n", gyro_x, gyro_y, gyro_z);
 }
 
 void Mpu6050::read_fifo(float acc[], float gyro[])

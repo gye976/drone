@@ -72,7 +72,7 @@ void cmd_debug_toggle(Drone *drone)
 {
 	(void)drone;
 
-	g_debug_flag = !g_debug_flag;
+	// g_debug_flag = !g_debug_flag;
 	// sync?
 }
 void cmd_show_pid(Drone *drone)
@@ -167,46 +167,28 @@ int parse_cmd(const char *str)
 	return -1;
 }
 
-void *get_user_input(void *drone)
+void user_do_once(void *drone)
 {
-	char buf[30];
+	(void)drone;
 
-	while (1) {
-		if (scanf("%s", buf) <= 0) {
-			printf("error cmd, again\n");
-			continue;
-		}
-		//buf[29] = '\0';
-
-		int ret = parse_cmd(buf);
-		if (ret == -1) {
-			continue;
-		} else {
-			s_func((Drone*)drone);
-		}
-	}
-
-	exit_program();
-
-	return (void*)0; // mean error
-}
-
-pthread_t make_user_front_thread(Drone *drone)
-{
-	pthread_t thread;
-
-	INIT_CMD("p", pause);
-	INIT_CMD("d", debug_flag);
-	INIT_CMD("\n", debug_toggle);
 	INIT_CMD("show", show_pid);
 	INIT_CMD("t", throttle);
 	INIT_CMD("pid", pid);
+}
+void user_loop(void *drone)
+{
+	char buf[30];
 
-    if (pthread_create(&thread, NULL, get_user_input, drone) != 0) {
-        perror("init_user_front ");
-        exit_program();
-    }
-	pthread_setname_np(thread, "gye-user-input");
+	if (scanf("%s", buf) <= 0) {
+		printf("error cmd, again\n");
+		return;
+	}
+	//buf[29] = '\0';
 
-	return thread;
+	int ret = parse_cmd(buf);
+	if (ret == -1) {
+		return;
+	} else {
+		s_func((Drone*)drone);
+	}
 }
