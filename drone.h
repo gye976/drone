@@ -68,33 +68,33 @@ public:
         
     //     return ret;
     // }
-    inline int trylock_drone()
-    {
-        int ret = pthread_mutex_trylock(&_mutex);
+    // inline int trylock_drone()
+    // {
+    //     int ret = pthread_mutex_trylock(&_mutex);
 
-        if (unlikely(!(ret == 0 || ret == EBUSY))) {
-            perror("trylock_drone err");
-            exit_program();
-        }
+    //     if (unlikely(!(ret == 0 || ret == EBUSY))) {
+    //         perror("trylock_drone err");
+    //         exit_program();
+    //     }
 
-        return ret;
-    }
-    inline void lock_drone()
-    {
-        int ret = pthread_mutex_lock(&_mutex);
-        if (unlikely(ret) != 0) {
-            perror("lock_drone err");
-            exit_program();
-        }
-    }
-    inline void unlock_drone()
-    {   
-        int ret = pthread_mutex_unlock(&_mutex);
-        if (unlikely(ret) != 0) {
-            perror("unlock_drone err");
-            exit_program();
-        }
-    }
+    //     return ret;
+    // }
+    // inline void lock_drone()
+    // {
+    //     int ret = pthread_mutex_lock(&_mutex);
+    //     if (unlikely(ret) != 0) {
+    //         perror("lock_drone err");
+    //         exit_program();
+    //     }
+    // }
+    // inline void unlock_drone()
+    // {   
+    //     int ret = pthread_mutex_unlock(&_mutex);
+    //     if (unlikely(ret) != 0) {
+    //         perror("unlock_drone err");
+    //         exit_program();
+    //     }
+    // }
     inline void set_throttle(int t)
     {
         _throttle = t;
@@ -130,7 +130,7 @@ private:
     Pwm _pwm[NUM_MOTOR];
     Pid _pid;
 
-    pthread_mutex_t _mutex;
+    // pthread_mutex_t _mutex;
 
     float _loop_dt;
 

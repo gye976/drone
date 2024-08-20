@@ -88,7 +88,6 @@ void LogSocket::write_buffer()
 
 int exit_LogSocketManager(LogSocketManager *log_socket_manager)
 {
-	log_socket_manager->cancle_loggging();
 	log_socket_manager->cancel_all_send();
 
 	int ret = close(log_socket_manager->_sockfd);
@@ -154,10 +153,6 @@ LogSocketManager::LogSocketManager()
 }
 void LogSocketManager::add_buffer(LogBuffer *log_buffer)
 {
-	if (unlikely(_cancle_flag == 1)) {
-		return;
-	}
-	
 	_log_buffer[_buffer_produce_idx].add_buffer(log_buffer);
 }
 void LogSocketManager::increase_log_socket(LogSocket *log_socket)
@@ -168,17 +163,9 @@ void LogSocketManager::increase_log_socket(LogSocket *log_socket)
 
 void LogSocketManager::flush_buffer()
 {
-	if (unlikely(_cancle_flag == 1)) {
-		for (int i = 0; i < _list_num; i++) {
-			_log_socket_list[i]->clear_buffer();
-		}
-
-		return;
-	}
-
 	int next_produce_idx = (_buffer_produce_idx + 1) & (MANAGER_BUFFER_SIZE - 1);
 	if (unlikely(next_produce_idx == _buffer_consume_idx)) {
-		printf("LogSocketManager, consumer is slow, bug?\n");
+		//printf("LogSocketManager, consumer is slow, bug?\n");
 	
 		for (int i = 0; i < _list_num; i++) {
 			_log_socket_list[i]->clear_buffer();
@@ -200,8 +187,6 @@ void LogSocketManager::send()
 	int ret;
 	char *buf;
 	int buf_idx;
-	struct io_uring_sqe *sqe;
-	//struct io_uring_cqe *cqe;
 
 	if (_buffer_produce_idx == _buffer_consume_idx) {
 		//printf("producer slow\n");
@@ -211,6 +196,10 @@ void LogSocketManager::send()
 
 	buf = _log_buffer[_buffer_consume_idx].get_buffer();
 	buf_idx = _log_buffer[_buffer_consume_idx].get_idx();
+
+#ifdef IO_URING
+	struct io_uring_sqe *sqe;
+	//struct io_uring_cqe *cqe;
 
 	// int space_left = io_uring_sq_space_left(&_ring);
 	// if (space_left > 0) {
@@ -232,6 +221,13 @@ void LogSocketManager::send()
 		perror("io_uring submit ret == 0\n");		
 		exit_program();
 	}
+#else
+    ret = sendto(_sockfd, buf, buf_idx, 0, (struct sockaddr*)&_group_addr, sizeof(_group_addr));
+    if (unlikely(ret < 0)) {
+        perror("sendto failed");
+        exit_program();
+    }
+#endif
 
 	//_log_buffer.print_buffer();
 	_log_buffer[_buffer_consume_idx].clear_buffer();
@@ -241,6 +237,7 @@ void LogSocketManager::send()
 }
 void LogSocketManager::cancel_all_send()
 {
+#ifdef IO_URING
 #define IORING_ASYNC_CANCEL_ALL	(1U << 0)
 
 	struct io_uring_sqe *sqe;
@@ -255,6 +252,7 @@ void LogSocketManager::cancel_all_send()
 	}
 
 	io_uring_queue_exit(&_ring);
+#endif
 }
 
 
@@ -316,10 +314,9 @@ void LogSocketManager::cancel_all_send()
 // int LogFile::_s_idx = 0;
 
 
-
-void *send_socket_loop(void *arg)
+void send_socket_do_once(void *arg)
 {
-	LogSocketManager *log_socket_manager = (LogSocketManager*)arg;
+	(void)arg;
 
 	struct sched_param param = {
 		.sched_priority = 75,
@@ -329,10 +326,10 @@ void *send_socket_loop(void *arg)
 		perror("send_socket_loop, sched_setscheduler");
 		exit_program();
 	}
+}	
+void send_socket_loop(void *arg)
+{
+	LogSocketManager *log_socket_manager = (LogSocketManager*)arg;
 
-	while (log_socket_manager->check_cancle_flag() == 0) {
-		log_socket_manager->send();
-	}
-
-	return NULL; 
+	log_socket_manager->send();
 }

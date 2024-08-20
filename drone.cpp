@@ -16,11 +16,11 @@ Drone::Drone(float loop_dt)
 	, _pid(loop_dt)
 	, _loop_dt(loop_dt)
 {
-	pthread_mutex_init(&_mutex, NULL);
+	// pthread_mutex_init(&_mutex, NULL);
 }
 Drone::~Drone()
 {
-	pthread_mutex_destroy(&_mutex);
+	// pthread_mutex_destroy(&_mutex);
 }
 
 DtTrace dt_mpu6050("mpu6050");
@@ -60,51 +60,55 @@ void Drone::loop_logic()
 void Drone::loop()
 {
 	static size_t cycle = 0;
-	static size_t over_num = 0;
-
-	// usleep(10000);
 
 	static struct timespec mono_loop_ts_cur;
 	static struct timespec mono_loop_ts_prev;
 
-	// struct timespec loop_start_ts;
-	// loop_start_ts.tv_sec = 0;
-	// loop_start_ts.tv_nsec = _loop_dt * 500 * 1000 * 1000;
-
-	// for (int i = 0; i < 500; i++) {
-	// 	loop_logic();
-	// }
-
 	update_new_mono_time(&mono_loop_ts_prev);
 
-		loop_logic();
+	loop_logic();
 		
+	update_new_mono_time(&mono_loop_ts_cur);
+
+	float dt_ = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
+	float dt = dt_;
+
+	// if (unlikely(dt > _loop_dt)) {
+	// 	printf("!!!!!!!!!!loop_dt over, dt:%f\n", dt);
+	// 	exit_program();
+	// } else {
+	// 	struct timespec ts;
+	// 	ts.tv_sec = 0;
+	// 	ts.tv_nsec =  (_loop_dt - dt) * 1000 * 1000 * 1000;
+
+	// 	nanosleep(&ts, NULL);
+	// 	update_new_mono_time(&mono_loop_ts_cur);
+	// 	dt_sleep = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
+	// }
+	
+	if (dt < _loop_dt) {
+		//printf("delta dt:%f\n", dt - _loop_dt);
+		struct timespec ts;
+		ts.tv_sec = 0;
+		ts.tv_nsec =  (_loop_dt - dt) * 1000 * 1000 * 1000;
+
+		nanosleep(&ts, NULL);
 		update_new_mono_time(&mono_loop_ts_cur);
-		float dt = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
-		float dt_sleep = dt;
-		if (unlikely(dt > _loop_dt)) {
-			printf("!!!!!!!!!!loop_dt over, dt:%f\n", dt);
-			over_num++;
-			exit_program();
-		} else {
-			struct timespec ts;
-			ts.tv_sec = 0;
-			ts.tv_nsec =  (_loop_dt - dt) * 1000 * 1000 * 1000;
+		dt = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
+	}
+	if (unlikely(dt > _loop_dt + 0.0001)) {
+		printf("!!!!!!!!!!loop_dt over, dt:%f ---> %f\n", dt_, dt);
+		exit_program();
+	} 
 
-			nanosleep(&ts, NULL);
-			update_new_mono_time(&mono_loop_ts_cur);
-			dt_sleep = timespec_to_double(&mono_loop_ts_cur) - timespec_to_double(&mono_loop_ts_prev);
-		}
-		//update_new_mono_time(&mono_loop_ts_prev);
+	//printf("%f --> %f\n", dt_, dt);
+	ADD_LOG_SOCKET(dt, "%f", dt);
+	cycle++;
 
-		printf("%f, %f\n", dt, dt_sleep);
-		ADD_LOG_SOCKET(dt, "%f", dt);
-		cycle++;
-
-		// dt_socket_flush.update_prev_time();
-		// FLUSH_LOG_SOCKET();
-		// dt_socket_flush.update_cur_time();
-		// dt_socket_flush.update_data();
+	dt_socket_flush.update_prev_time();
+	FLUSH_LOG_SOCKET();
+	dt_socket_flush.update_cur_time();
+	dt_socket_flush.update_data();
 }
 void Drone::set_hovering()
 {
@@ -193,7 +197,7 @@ void drone_do_once(void *drone)
 {
 	set_rt_deadline(0, 300 * 1000, 1000 * 1000, 1000 * 1000);
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 300; i++) {
 		((Drone*)drone)->get_mpu6050()->do_mpu6050();
 	}
 }

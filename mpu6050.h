@@ -82,10 +82,10 @@ public:
 	}
 	inline void acc_to_angle(float acc[], float acc_angle[])
 	{
-		if (acc[Z] == 0.0 && (acc[X] == 0.0f || acc[Y] == 0.0f)) {
-			printf("nan\n");
-			exit_program();
-		}
+		// if (acc[Z] == 0.0 && (acc[X] == 0.0f || acc[Y] == 0.0f)) {
+		// 	printf("nan\n");
+		// 	exit_program();
+		// }
 
 		acc_angle[PITCH] = atan(acc[Y] / sqrt(pow(acc[X],2) + pow(acc[Z],2))) \
 			* RADIANS_TO_DEGREES;

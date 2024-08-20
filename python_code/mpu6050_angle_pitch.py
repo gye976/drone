@@ -150,6 +150,7 @@ ani = animation.FuncAnimation(
     fargs=(line_0, line_1, ax), 
     interval=100,  # 애니메이션 업데이트 간격을 100ms로 설정
     blit=False  # 성능 최적화
+    save_count=200  # 최대 200개의 프레임을 캐싱
 )
 
 plt.legend()

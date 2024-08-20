@@ -26,24 +26,24 @@ do { \
 	s_cmd_i++; \
 } while(0)
 
-static int n = 0;
+//static int n = 0;
 
-void pause_user(Drone *drone)
-{
-	if (n == 0) {
-		drone->lock_drone();
-	}
+// void pause_user(Drone *drone)
+// {
+// 	if (n == 0) {
+// 		drone->lock_drone();
+// 	}
 
-	n++;
-}
-void resume_user(Drone *drone)
-{
-	if (n == 1) {
-		drone->unlock_drone();
-	}
+// 	n++;
+// }
+// void resume_user(Drone *drone)
+// {
+// 	if (n == 1) {
+// 		drone->unlock_drone();
+// 	}
 
-	n--;
-}
+// 	n--;
+// }
 
 int scan_str(char *buf)
 {
@@ -56,14 +56,14 @@ int scan_str(char *buf)
 }
 void cmd_pause(Drone *drone)
 {
+	(void)drone;
+
 	static bool f = 0;
 
 	if (f == 0) {
 		printf("pause\n");
-		pause_user(drone);
 		f = 1;
 	} else { 
-		resume_user(drone);
 		f = 0;
 	}	
 }
@@ -81,7 +81,7 @@ void cmd_show_pid(Drone *drone)
 }
 void cmd_throttle(Drone *drone)
 {
-	pause_user(drone);
+	// pause_user(drone);
 
 	char buf[15];
 	if (scan_str(buf) == -1) {
@@ -92,24 +92,25 @@ void cmd_throttle(Drone *drone)
 	int t = atoi(buf);
 	if (t == 0) {
 		printf("arg err\n");
-		goto ERR;
+		return;
+		// goto ERR;
 	}
 	printf("throttle: %d\n", t);
 
 	drone->set_throttle(t);
 
-ERR:
-	resume_user(drone);
+// ERR:
+	// resume_user(drone);
 }
 
 void cmd_pid(Drone *drone)
 {
-	pause_user(drone);
+	// pause_user(drone);
 
 	drone->get_pid()->read_meta_file();
 	drone->get_pid()->print_parameter();
 
-	resume_user(drone);
+	// resume_user(drone);
 
 	return;
 
@@ -121,7 +122,8 @@ void cmd_pid(Drone *drone)
 
 void cmd_debug_flag(Drone *drone)
 {
-	pause_user(drone);
+	(void)drone;
+	// pause_user(drone);
 
 	char buf[10];
 	if (scan_str(buf) == -1) {
@@ -139,7 +141,7 @@ void cmd_debug_flag(Drone *drone)
 	// 	drone->toggle_pwm_f();
 	// }
 
-	resume_user(drone);
+	// resume_user(drone);
 }
 
 int parse_cmd(const char *str)

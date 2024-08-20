@@ -15,9 +15,8 @@ DEFINE_THREAD(drone, drone_loop, drone_do_once, &g_drone);
 
 DEFINE_THREAD(user, user_loop, user_do_once, &g_drone);
 
-// DEFINE_THREAD2(drone, drone_loop, init_drone, (void*)&g_drone);
 #ifndef NO_SOCKET
-	MakeThread socket_thread("gye-socket", send_socket_loop, NULL, &g_drone);
+	DEFINE_THREAD(socket, send_socket_loop, send_socket_do_once, &g_log_socket_manager);
 #endif
 
 int main() 
@@ -44,7 +43,7 @@ int main()
 	
 	threads[0] = g_user_thread.make_thread();
 	threads[1] = g_drone_thread.make_thread();
-// 	threads[2] = make_drone_thread(&drone);
+	threads[2] = g_socket_thread.make_thread();
 
 // 	threads[3] = make_mpu6050_read_hwfifo_thread(mpu6050);
 

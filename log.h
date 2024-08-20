@@ -77,7 +77,7 @@ private:
 	LogBuffer _log_buffer;
 };
 
-#define MANAGER_BUFFER_SIZE	64
+#define MANAGER_BUFFER_SIZE	256
 class LogSocketManager
 {
 	friend int exit_LogSocketManager(LogSocketManager *log_socket_manager);
@@ -90,14 +90,7 @@ public:
 	void flush_buffer();
 	void send();
 	void cancel_all_send();
-	inline bool check_cancle_flag()
-	{
-		return _cancle_flag;
-	}
-	inline void cancle_loggging()
-	{
-		_cancle_flag = 1;
-	}
+
 private:
 	LogBuffer _log_buffer[MANAGER_BUFFER_SIZE];
 	LogSocket *_log_socket_list[20];
@@ -110,8 +103,6 @@ private:
 	int _buffer_produce_idx = 0;
 	int _sockfd;
 	int _ttl = TTL;
-
-	bool _cancle_flag = 0;
 };
 
 // #define LOGFILE_BUF_SIZE	(1 << 5)
@@ -233,7 +224,8 @@ do { \
 #endif
 
 extern LogSocketManager g_log_socket_manager;
-void *send_socket_loop(void *arg);
 
+void send_socket_do_once(void *arg);
+void send_socket_loop(void *arg);
 
 #endif
