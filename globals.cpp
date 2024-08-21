@@ -41,21 +41,54 @@ static struct sigaction s_sa;
 void (*g_exit_func_global_list[20])();
 int g_exit_func_global_num = 0;
 
-extern pthread_t g_threads[2];
+pthread_mutex_t g_exit_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t g_exit_cond = PTHREAD_COND_INITIALIZER;
+
+bool g_exit_invoked_flag = 0;
+bool g_main_thread_cond_flag = 0;
+
+extern pthread_t g_main_thread_id;
+
 void __exit_program()
-{    
-	static bool s_exit_flag = 0;
-	if (s_exit_flag == 1) {
+{   
+	pthread_mutex_lock(&g_exit_mutex);
+	
+	if (pthread_self() != g_main_thread_id) {
+		printf("Non-main thread requested exit.\n");
+
+		g_main_thread_cond_flag = 1;
+
+		pthread_cond_signal(&g_exit_cond);
+
+		pthread_mutex_unlock(&g_exit_mutex);
+
+		MakeThread *make_thread = find_make_thread(pthread_self());
+		if (unlikely(make_thread == NULL)) {
+			printf("__exit_program, find_make_thread bug\n");
+		}
+
+		make_thread->stop_thread_by_that_thread(); // loop
+	
+		printf("thread sleep fail, bug\n");
 		return;
-		// while (1) {
-		// 	usleep(1000);
-		// }
+	} 
+	
+	if (g_exit_invoked_flag != 0) {
+		printf("exit_program invoked again, bug\n");
+		pthread_mutex_unlock(&g_exit_mutex);
+		return;
 	}
-	s_exit_flag = 1;
+	g_exit_invoked_flag = 1;
+
+	pthread_mutex_unlock(&g_exit_mutex);
+
+ 	printf("main thread requested exit.\n");
 
 	stop_all_threads();
 
-	printf("###exit_program entry\n");
+	wait_all_threads_success_exit();
+
+	printf("\n###exit_program entry\n");
 	printf("###exit class num:%d\n", g_exit_func_global_num);
 
 	for (int i = 0; i < g_exit_func_global_num; i++) {
@@ -155,10 +188,26 @@ int get_pid_str(const char *cmd, char pid[][30])
 MakeThread *g_threads_list[20];
 int g_threads_num = 0;
 
+MakeThread *find_make_thread(pthread_t thread)
+{
+	for (int i = 0; i < g_threads_num; i++) {
+		if (g_threads_list[i]->get_thread_id() == thread) {
+			return g_threads_list[i];
+		}
+	}
+
+	return NULL;
+}
 void stop_all_threads()
 {
 	for (int i = 0; i < g_threads_num; i++) {
-		g_threads_list[i]->stop_thread();
+		g_threads_list[i]->stop_thread_by_main_thread();
+	}
+}
+void wait_all_threads_success_exit()
+{
+	for (int i = 0; i < g_threads_num; i++) {
+		g_threads_list[i]->wait_stop_thread_success();
 	}
 }
 
@@ -166,20 +215,73 @@ MakeThread::MakeThread(const char *name, void *(*thread_func)(void *arg), void *
 	: _thread_func(thread_func)
 	, _name(name)
 	, _arg(arg)
-{}
-
-pthread_t MakeThread::make_thread()
 {
-	pthread_t thread;
+	if (pthread_mutex_init(&_mutex, NULL) != 0) {
+		exit_program();
+	}
+	if (pthread_cond_init(&_cond, NULL) != 0) {
+		exit_program();
+	}
+}
 
-	if (unlikely(pthread_create(&thread, NULL, _thread_func, _arg) != 0)) {
+void MakeThread::stop_thread_by_main_thread()
+{
+	pthread_mutex_lock(&_mutex);
+	
+	if (_stop_flag == 0) {
+		_stop_flag = 1;
+	} 
+
+	pthread_mutex_unlock(&_mutex);
+}
+void MakeThread::stop_thread_by_that_thread()
+{
+	cond_signal_stop_thread();
+
+	sleep(1000000); // =infi loop
+}
+void MakeThread::wait_stop_thread_success()
+{
+	pthread_mutex_lock(&_mutex);
+
+	while (_stop_flag != 2) {
+        pthread_cond_wait(&_cond, &_mutex);
+    }
+
+	pthread_mutex_unlock(&_mutex);
+}
+void MakeThread::cond_signal_stop_thread() // when success exit, non-main thread invoke 
+{
+	pthread_mutex_lock(&_mutex);
+
+	if (_stop_flag <= 1) {
+		_stop_flag = 2;
+	} else {
+		printf("cond_signal_stop_thread bug, flag:%d\n", _stop_flag);
+	}
+
+	pthread_cond_signal(&_cond);
+
+	pthread_mutex_unlock(&_mutex);
+}
+int MakeThread::check_stop_flag() 
+{
+	int ret;
+
+	pthread_mutex_lock(&_mutex);
+	ret = _stop_flag;
+	pthread_mutex_unlock(&_mutex);
+
+	return ret;
+}
+void MakeThread::make_thread()
+{
+	if (unlikely(pthread_create(&_thread_id, NULL, _thread_func, _arg) != 0)) {
 		perror("init_user_front ");
 		exit_program();
 	}
-	pthread_setname_np(thread, _name);	
+	pthread_setname_np(_thread_id, _name);	
 
 	g_threads_list[g_threads_num] = this;
 	g_threads_num++;
-
-	return thread;
 }

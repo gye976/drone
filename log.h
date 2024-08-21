@@ -4,7 +4,7 @@
 #include "global_predefined.h"
 
 #include <arpa/inet.h>
-#include <liburing.h>
+// #include <liburing.h>
 #include <stdarg.h>
 #include <aio.h>
 #include <pthread.h>
@@ -96,7 +96,7 @@ private:
 	LogSocket *_log_socket_list[20];
 	struct sockaddr_in _group_addr;
 	struct in_addr _local_ip;
-	struct io_uring _ring;
+	//struct io_uring _ring;
 
 	int _list_num = 0;
 	int _buffer_consume_idx = 0;

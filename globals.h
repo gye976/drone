@@ -102,24 +102,39 @@ class MakeThread
 {
 public:
 	MakeThread(const char *name, void *(*_thread_func)(void *arg), void *arg);
-	pthread_t make_thread();
+	void make_thread();
 	
-	inline void stop_thread()
+	// inline void lock_thread_mutex()
+	// {
+	// 	pthread_mutex_lock(&_mutex);
+	// }
+	// inline void unlock_thread_mutex()
+	// {
+	// 	pthread_mutex_lock(&_mutex);
+	// }
+	inline pthread_t get_thread_id()
 	{
-		_stop_flag = 1;
+		return _thread_id;
 	}
-	inline bool check_stop_flag() 
-	{
-		return _stop_flag;
-	}
+	void stop_thread_by_main_thread();
+	void stop_thread_by_that_thread();
+	void wait_stop_thread_success();
+	void cond_signal_stop_thread();
+	int check_stop_flag();
 private:
+	pthread_mutex_t _mutex;
+	pthread_cond_t _cond;
+	
+	pthread_t _thread_id;
+
 	void *(*_thread_func)(void *arg);
 	const char* _name;	
 	void *_arg;
-	bool _stop_flag = 0;
+	int _stop_flag = 0;
 };
 
-#define DEFINE_THREAD(name, thread_func, do_once_func, arg) \
+
+#define DEFINE_THREAD(name, thread_func, arg) \
 \
 extern void *(__##name##_thread_func)(void *__arg); \
 MakeThread g_##name##_thread("gye-"#name, __##name##_thread_func, arg); \
@@ -128,23 +143,43 @@ void (__##name##_thread_loop)(void *__arg) \
 { \
 	while (1) { \
 		if (unlikely(g_##name##_thread.check_stop_flag() == 1)) { \
-			while (1); \
+			printf("!!!!!!!!!!!!!!!!!!!!!"#name"_thread stop\n"); \
+			g_##name##_thread.stop_thread_by_that_thread(); \
 		} \
 \
 		thread_func(__arg); \
 	} \
-}\
+}
+
+
+#define DEFINE_THREAD_WITH_INIT(name, thread_func, do_once_func, arg) \
+\
+DEFINE_THREAD(name, thread_func, arg); \
+\
 void *(__##name##_thread_func)(void *__arg) \
 { \
-	if (do_once_func != NULL) \
-		do_once_func(__arg); \
+	do_once_func(__arg); \
 \
 	__##name##_thread_loop(__arg); \
 \
 	return NULL; \
 } 
 
+
+#define DEFINE_THREAD_NO_INIT(name, thread_func, arg) \
+\
+DEFINE_THREAD(name, thread_func, arg); \
+\
+void *(__##name##_thread_func)(void *__arg) \
+{ \
+	__##name##_thread_loop(__arg); \
+\
+	return NULL; \
+} 
+
+MakeThread *find_make_thread(pthread_t thread);
 void stop_all_threads();
+void wait_all_threads_success_exit();
 
 int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int flags);
 int sched_getattr(pid_t pid, struct sched_attr *attr, unsigned int size, unsigned int flags);

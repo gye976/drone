@@ -46,6 +46,8 @@ enum {
 class Drone 
 {
 public:
+    friend void drone_do_once(void *arg);
+
     Drone(float loop_dt);
     ~Drone();
 
@@ -57,10 +59,7 @@ public:
     {
         return _pwm;
     }
-    inline Pid* get_pid()
-    {
-        return &_pid;
-    }
+
     // inline int try_lock_drone()
     // {
     //     int ret = pthread_spin_trylock(&_spinlock);
@@ -112,13 +111,18 @@ public:
     // {
     //     _pr_pwm_f = !_pr_pwm_f;
     // }
-    void loop_logic();
+    void loop_logic_1();
     void loop();
     void print_parameter();
     void log_data();
 
+    void read_and_update_pid_gain();
+    void cascade_drone_pid(Pid* pid_angle, Pid* pid_gyro, float angle, float gyro_rate, float gyro_rate_prev, float* out);
+    void update_PRY_pid_out(float angle_input[], float gyro_rate_input[]);
+    void update_throttle_pid_out(float throttle_input);
+    
 private:    
-    void print_data();
+    void print_pid_gain();
 	void set_motor_speed();
     void update_pid_out(float *angle_cur, float *gyro_rate_cur); 
     void set_hovering();
@@ -128,24 +132,34 @@ private:
 
     Mpu6050 _mpu6050;
     Pwm _pwm[NUM_MOTOR];
-    Pid _pid;
+
+    Pid _pid_angle_PRY[3];
+    Pid _pid_gyro_PRY[3];
+
+    Pid _pid_throttle;
+
 
     // pthread_mutex_t _mutex;
+
+	struct timespec _mono_loop_ts_cur;
+	struct timespec _mono_loop_ts_prev;
 
     float _loop_dt;
 
     float _angle_target[NUM_AXIS] =  { 0, } ;
-    float _angle_error[NUM_AXIS] = { 0, };
+   // float _angle_error[NUM_AXIS] = { 0, };
 
     float _rate_target[NUM_AXIS] = { 0, };
-    float _rate_error[NUM_AXIS] = { 0, };
+   // float _rate_error[NUM_AXIS] = { 0, };
+
+    float _throttle_target = 0.0f;
 
     int _pitch = 0, _roll = 0, _yaw = 0;
     int _throttle = 0;
 };
 
-void drone_do_once(void *drone);
-void drone_loop(void *drone);
+void drone_do_once(void *arg);
+void drone_loop(void *arg);
 
 #endif 
 

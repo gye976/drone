@@ -119,5 +119,45 @@ do { \
 } while(0)
 
 
+// class Dt
+// {
+// 	Dt(double expected_dt, double error_margin);
+
+// 	void check_dt();
+
+// 	double _expected_dt = 0.0;
+// 	double _error_dt_margin = 0.0;
+
+// 	struct timespec _ts_cur;
+// 	struct timespec _ts_prev;
+// };
+
+// Dt::Dt(double expected_dt, double error_margin)	
+// 	: _expected_dt(expected_dt)
+// 	, _error_dt_margin(error_margin)
+// {}
+
+// void Dt::check_dt()
+// {
+// 	float dt_ = timespec_to_double(&_ts_cur) - timespec_to_double(&_ts_prev);
+// 	float dt = dt_;
+
+// 	if (dt < _expected_dt) {
+// 		//printf("delta dt:%f\n", dt - _loop_dt);
+// 		struct timespec ts;
+// 		ts.tv_sec = 0;
+// 		ts.tv_nsec =  (_expected_dt - dt) * 1000 * 1000 * 1000;
+
+// 		nanosleep(&ts, NULL);
+// 		update_new_mono_time(&_ts_cur);
+// 		dt = timespec_to_double(&_ts_cur) - timespec_to_double(&_ts_prev);
+// 	}
+// 	if (unlikely(dt > _expected_dt + _error_dt_margin)) {
+// 		printf("!!!!!!!!!!loop_dt over, dt:%f ---> %f\n", dt_, dt);
+// 		exit_program();
+// 	}
+// };
+
+
 #endif 
 

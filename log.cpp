@@ -139,13 +139,14 @@ LogSocketManager::LogSocketManager()
 		exit_program();
 	}
 
+#ifdef IO_URING
 	int ret = io_uring_queue_init(2, &_ring, 0);
 	if (ret < 0) {
 		perror("io_uring_queue_init");
 		close(_sockfd);
 		exit_program();
 	}
-
+#endif
 	// if (pthread_spin_init(&_spinlock) != 0) {
 	// 	perror("LogSocketManager, pthread_spin_init");
 	// 	exit_program();	

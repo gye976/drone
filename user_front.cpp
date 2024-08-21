@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
+#include <poll.h>
 
 #include "globals.h"
 #include "user_front.h"
@@ -103,22 +104,22 @@ void cmd_throttle(Drone *drone)
 	// resume_user(drone);
 }
 
-void cmd_pid(Drone *drone)
-{
-	// pause_user(drone);
+// void cmd_pid(Drone *drone)
+// {
+// 	// pause_user(drone);
 
-	drone->get_pid()->read_meta_file();
-	drone->get_pid()->print_parameter();
+// 	// drone->get_pid()->read_meta_file();
+// 	// drone->get_pid()->print_parameter();
 
-	// resume_user(drone);
+// 	// resume_user(drone);
 
-	return;
+// 	return;
 
-// ERR:
+// // ERR:
 
-// 	resume_user();
-// 	printf("arg err\n");
-}
+// // 	resume_user();
+// // 	printf("arg err\n");
+// }
 
 void cmd_debug_flag(Drone *drone)
 {
@@ -175,19 +176,39 @@ void user_do_once(void *drone)
 
 	INIT_CMD("show", show_pid);
 	INIT_CMD("t", throttle);
-	INIT_CMD("pid", pid);
+	//INIT_CMD("pid", pid);
 }
+
+#define TIMEOUT 	2 //ms
 void user_loop(void *drone)
-{
+{	
+	struct pollfd fds[1];
+    int ret;
 	char buf[30];
 
-	if (scanf("%s", buf) <= 0) {
-		printf("error cmd, again\n");
+    // 파일 디스크립터 설정
+    fds[0].fd = STDIN_FILENO;
+    fds[0].events = POLLIN; // 읽기 가능 이벤트
+
+	ret = poll(fds, 1, TIMEOUT);
+
+  	if (unlikely(ret == -1)) {
+        perror("select");
+        exit_program();
+    } else if (ret == 0) {
 		return;
-	}
+    } else {
+        if (fds[0].revents & POLLIN) {
+			if (scanf("%s", buf) <= 0) {
+				printf("error cmd, again\n");
+				return;
+			}
+		}
+    }
+
 	//buf[29] = '\0';
 
-	int ret = parse_cmd(buf);
+	ret = parse_cmd(buf);
 	if (ret == -1) {
 		return;
 	} else {
