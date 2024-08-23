@@ -174,6 +174,8 @@ void user_do_once(void *drone)
 {
 	(void)drone;
 
+	pthread_setschedparam_wrapper(pthread_self(), SCHED_RR, 50);
+
 	INIT_CMD("show", show_pid);
 	INIT_CMD("t", throttle);
 	//INIT_CMD("pid", pid);

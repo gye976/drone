@@ -45,47 +45,41 @@ pthread_mutex_t g_exit_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t g_exit_cond = PTHREAD_COND_INITIALIZER;
 
 bool g_exit_invoked_flag = 0;
-bool g_main_thread_cond_flag = 0;
+bool g_non_main_thread_request_flag = 0;
 
 extern pthread_t g_main_thread_id;
 
 void __exit_program()
-{   
-	pthread_mutex_lock(&g_exit_mutex);
-	
+{   	
 	if (pthread_self() != g_main_thread_id) {
-		printf("Non-main thread requested exit.\n");
 
-		g_main_thread_cond_flag = 1;
-
+		pthread_mutex_lock(&g_exit_mutex);
+		
+		if (g_non_main_thread_request_flag == 1) {
+			pthread_mutex_unlock(&g_exit_mutex);
+			goto SLEEP_NON_MAIN_THREAD; 
+		}
+		g_non_main_thread_request_flag = 1;
 		pthread_cond_signal(&g_exit_cond);
 
 		pthread_mutex_unlock(&g_exit_mutex);
 
-		MakeThread *make_thread = find_make_thread(pthread_self());
-		if (unlikely(make_thread == NULL)) {
-			printf("__exit_program, find_make_thread bug\n");
-		}
-
-		make_thread->stop_thread_by_that_thread(); // loop
-	
-		printf("thread sleep fail, bug\n");
-		return;
+		printf("Non-main thread requested exit.\n");
+		goto SLEEP_NON_MAIN_THREAD;
 	} 
 	
 	if (g_exit_invoked_flag != 0) {
 		printf("exit_program invoked again, bug\n");
-		pthread_mutex_unlock(&g_exit_mutex);
 		return;
 	}
 	g_exit_invoked_flag = 1;
 
-	pthread_mutex_unlock(&g_exit_mutex);
-
  	printf("main thread requested exit.\n");
 
+	printf("stop_all_threads...\n");
 	stop_all_threads();
 
+	printf("wait_all_threads_success_exit...\n");
 	wait_all_threads_success_exit();
 
 	printf("\n###exit_program entry\n");
@@ -98,6 +92,17 @@ void __exit_program()
 	printf("###exit_program exit\n");
 
 	exit(0);
+
+SLEEP_NON_MAIN_THREAD:
+	MakeThread *make_thread = find_make_thread(pthread_self());
+	if (unlikely(make_thread == NULL)) {
+		printf("__exit_program, find_make_thread bug\n");
+	}
+
+	make_thread->stop_thread_by_that_thread(); // loop
+	
+	printf("thread sleep fail, bug\n");
+	return;
 }
 
 void init_signal() 
@@ -124,7 +129,7 @@ void set_rtprio_limit() {
 
 struct sched_param s_sp;
 
-void set_rt_deadline(pid_t pid, int runtime, int deadline, int period)
+void set_sched_deadline(pid_t pid, int runtime, int deadline, int period)
 {
 	struct sched_attr attr;
 
@@ -141,16 +146,27 @@ void set_rt_deadline(pid_t pid, int runtime, int deadline, int period)
 		exit_program();
 	}
 }
-void set_rt_rr(pid_t pid, int prio)
+void sched_setscheduler_wrapper(pid_t pid, int policy, int prio)
 {
 	struct sched_param param = {
 		.sched_priority = prio,
 	};
 
-    printf("set_rt_rr, pid:%d\n", pid);
-	if (sched_setscheduler(pid, SCHED_RR, &param) != 0)
+	if (sched_setscheduler(pid, policy, &param) != 0)
 	{
-		perror("set_rt_rr");
+		perror("sched_setscheduler_wrapper");
+		exit_program();
+	}
+}
+void pthread_setschedparam_wrapper(pthread_t thread_id, int policy, int prio)
+{
+	struct sched_param param = {
+		.sched_priority = prio,
+	};
+
+	if (pthread_setschedparam(thread_id, policy, &param) != 0)
+	{
+		perror("pthread_setschedparam_wrapper");
 		exit_program();
 	}
 }
@@ -233,11 +249,14 @@ void MakeThread::stop_thread_by_main_thread()
 	} 
 
 	pthread_mutex_unlock(&_mutex);
+
+	pthread_setschedparam_wrapper(_thread_id, SCHED_RR, 99);
 }
 void MakeThread::stop_thread_by_that_thread()
 {
 	cond_signal_stop_thread();
 
+	pthread_setschedparam_wrapper(_thread_id, SCHED_OTHER, 0);
 	sleep(1000000); // =infi loop
 }
 void MakeThread::wait_stop_thread_success()
@@ -245,7 +264,7 @@ void MakeThread::wait_stop_thread_success()
 	pthread_mutex_lock(&_mutex);
 
 	while (_stop_flag != 2) {
-        pthread_cond_wait(&_cond, &_mutex);
+        pthread_cond_wait(&_cond, &_mutex); // TO DO: timeout
     }
 
 	pthread_mutex_unlock(&_mutex);
@@ -253,6 +272,7 @@ void MakeThread::wait_stop_thread_success()
 void MakeThread::cond_signal_stop_thread() // when success exit, non-main thread invoke 
 {
 	pthread_mutex_lock(&_mutex);
+	printf("cond_signal_stop_thread after lock\n");
 
 	if (_stop_flag <= 1) {
 		_stop_flag = 2;
@@ -263,6 +283,8 @@ void MakeThread::cond_signal_stop_thread() // when success exit, non-main thread
 	pthread_cond_signal(&_cond);
 
 	pthread_mutex_unlock(&_mutex);
+	printf("cond_signal_stop_thread after unlock\n");
+
 }
 int MakeThread::check_stop_flag() 
 {

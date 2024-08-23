@@ -27,12 +27,15 @@ public:
 	void print_data();
 
 	void calc_pid(float target, float input, float *out);
+	void calc_pid_no_overshoot(float target, float input, float *out);
 	void calc_pid_derr_per_dt(float target, float input, float d_error_per_dt, float *out);
 private:
 	float _gain[3] = { 0.0f, };
 	float _iterm_max = 0.0f;
 	float _term[3] = { 0, };
 	 		// PID
+
+	float _input_prev = 0.0f;
 
 	float _error_cur = 0.0f;
 	float _error_prev = 0.0f;

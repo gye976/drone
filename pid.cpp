@@ -212,11 +212,22 @@ void Pid::calc_pid_derr_per_dt(float target, float input, float d_error_per_dt, 
 	}
 
 	(*out) = _term[P] + _term[I] + _term[D];
+
+	_input_prev = input;
 }
 
 void Pid::calc_pid(float target, float input, float *out)
 {
 	float d_error = (_error_cur - _error_prev); //cause overshoot.
+	float d_error_per_dt = d_error / _dt;
 
-	calc_pid_derr_per_dt(target, input, d_error / _dt, out);
+	calc_pid_derr_per_dt(target, input, d_error_per_dt, out);
+}
+
+void Pid::calc_pid_no_overshoot(float target, float input, float *out)
+{
+	float d_error = (-1) * (input - _input_prev); 
+	float d_error_per_dt = d_error / _dt;
+
+	calc_pid_derr_per_dt(target, input, d_error_per_dt, out);
 }

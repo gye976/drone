@@ -134,7 +134,7 @@ private:
 };
 
 
-#define DEFINE_THREAD(name, thread_func, arg) \
+#define DEFINE_THREAD(name, arg) \
 \
 extern void *(__##name##_thread_func)(void *__arg); \
 MakeThread g_##name##_thread("gye-"#name, __##name##_thread_func, arg); \
@@ -147,18 +147,18 @@ void (__##name##_thread_loop)(void *__arg) \
 			g_##name##_thread.stop_thread_by_that_thread(); \
 		} \
 \
-		thread_func(__arg); \
+		name##_loop(__arg); \
 	} \
 }
 
 
-#define DEFINE_THREAD_WITH_INIT(name, thread_func, do_once_func, arg) \
+#define DEFINE_THREAD_WITH_INIT(name, arg) \
 \
-DEFINE_THREAD(name, thread_func, arg); \
+DEFINE_THREAD(name, arg); \
 \
 void *(__##name##_thread_func)(void *__arg) \
 { \
-	do_once_func(__arg); \
+	name##_do_once(__arg); \
 \
 	__##name##_thread_loop(__arg); \
 \
@@ -166,9 +166,9 @@ void *(__##name##_thread_func)(void *__arg) \
 } 
 
 
-#define DEFINE_THREAD_NO_INIT(name, thread_func, arg) \
+#define DEFINE_THREAD_NO_INIT(name, arg) \
 \
-DEFINE_THREAD(name, thread_func, arg); \
+DEFINE_THREAD(name, arg); \
 \
 void *(__##name##_thread_func)(void *__arg) \
 { \
@@ -181,11 +181,10 @@ MakeThread *find_make_thread(pthread_t thread);
 void stop_all_threads();
 void wait_all_threads_success_exit();
 
-int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int flags);
-int sched_getattr(pid_t pid, struct sched_attr *attr, unsigned int size, unsigned int flags);
+void sched_setscheduler_wrapper(pid_t pid, int policy, int prio);
+void pthread_setschedparam_wrapper(pthread_t thread_id, int policy, int prio);
+void set_sched_deadline(pid_t pid, int runtime, int deadline, int period);
 
-void set_rt_deadline(pid_t pid, int runtime, int deadline, int period);
-void set_rt_rr(pid_t pid, int prio);
 int get_pid_str(const char *cmd, char pid[][30]);
 
 #include "debug.h"

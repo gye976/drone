@@ -6,6 +6,7 @@
 
 #include "debug.h"
 #include "mpu6050.h"
+#include "hc_sr04.h"
 #include "pid.h"
 #include "pwm.h"
 
@@ -55,11 +56,10 @@ public:
     {
         return &_mpu6050;
     }
-    inline Pwm* get_motor()
+    inline HcSr04* get_hc_sr04()
     {
-        return _pwm;
+        return &_hc_sr04;
     }
-
     // inline int try_lock_drone()
     // {
     //     int ret = pthread_spin_trylock(&_spinlock);
@@ -111,15 +111,16 @@ public:
     // {
     //     _pr_pwm_f = !_pr_pwm_f;
     // }
-    void loop_logic_1();
+        
     void loop();
+    void check_loop_dt();
     void print_parameter();
     void log_data();
 
     void read_and_update_pid_gain();
-    void cascade_drone_pid(Pid* pid_angle, Pid* pid_gyro, float angle, float gyro_rate, float gyro_rate_prev, float* out);
+    void cascade_drone_pid(Pid* pid_angle, Pid* pid_gyro, float angle, float gyro_rate, float* out);
     void update_PRY_pid_out(float angle_input[], float gyro_rate_input[]);
-    void update_throttle_pid_out(float throttle_input);
+    void update_altitude_pid_out(float altitude_input);
     
 private:    
     void print_pid_gain();
@@ -131,12 +132,14 @@ private:
     MakeThread *_makethread;
 
     Mpu6050 _mpu6050;
+    HcSr04 _hc_sr04;
     Pwm _pwm[NUM_MOTOR];
 
     Pid _pid_angle_PRY[3];
     Pid _pid_gyro_PRY[3];
 
-    Pid _pid_throttle;
+    Pid _pid_altitude;
+    Pid _pid_altitude_rate;
 
 
     // pthread_mutex_t _mutex;
@@ -145,14 +148,13 @@ private:
 	struct timespec _mono_loop_ts_prev;
 
     float _loop_dt;
+    size_t _loop_cycle = 0;
 
     float _angle_target[NUM_AXIS] =  { 0, } ;
-   // float _angle_error[NUM_AXIS] = { 0, };
-
     float _rate_target[NUM_AXIS] = { 0, };
-   // float _rate_error[NUM_AXIS] = { 0, };
 
-    float _throttle_target = 0.0f;
+    float _altitude_target; //= 12.8f; //default
+    float _altitude_input_prev; // = 12.8f; 
 
     int _pitch = 0, _roll = 0, _yaw = 0;
     int _throttle = 0;

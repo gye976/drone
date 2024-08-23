@@ -16,12 +16,16 @@ Drone::Drone(float loop_dt)
 	, _pwm{Pwm(1), Pwm(2), Pwm(3), Pwm(4)}
 	, _pid_angle_PRY{Pid(loop_dt), Pid(loop_dt), Pid(loop_dt)}
 	, _pid_gyro_PRY{Pid(loop_dt), Pid(loop_dt), Pid(loop_dt)}
-	, _pid_throttle(loop_dt)
+	, _pid_altitude(loop_dt)
+	, _pid_altitude_rate(loop_dt)
 	, _loop_dt(loop_dt)
 {
 	read_and_update_pid_gain();
 
 	print_pid_gain();
+
+	_altitude_target = _hc_sr04.get_altitude();
+	_altitude_input_prev = _altitude_target;
 }
 Drone::~Drone()
 {
@@ -30,43 +34,6 @@ Drone::~Drone()
 
 DtTrace dt_mpu6050("mpu6050");
 DtTrace dt_socket_flush("socket_flush");
-
-void Drone::loop_logic_1()
-{
-	float *angle = _mpu6050.get_angle();
-	float *gyro_rate = _mpu6050.get_gyro_rate();
-
-
-	TRACE_FUNC_DT(dt_mpu6050, _mpu6050.do_mpu6050);
-
-		// int ret = trylock_drone();
-		// if (ret == 0) {
-		// 	// 목표각 설정.
-		// 	//	타겟을 롤, 피치는 0로 지정 (자세제어)
-		// 	//	쓰로틀,요우는 따로 지정 (일단 yaw는 항상 오차가 0이도록 설정)
-
-		// 	set_hovering();
-		// 	// update_target();
-
-		// 	log_data();
-
-		// 	unlock_drone();
-		// }
-
-	set_hovering();
-	// update_target();
-
-	log_data();
-
-////////////////////////////////////////////////////////////////////////////////
-
-	//update_pid_out(angle, gyro_rate);
-
-	update_PRY_pid_out(angle, gyro_rate);
-	//update_throttle_pid_out
-
-////////////////////////////////////////
-}
 
 void Drone::print_pid_gain()
 {
@@ -82,17 +49,13 @@ void Drone::print_pid_gain()
 	_pid_angle_PRY[2].print_gain();
 	_pid_gyro_PRY[2].print_gain();
 
-	printf("\nthrottle gain:\n");
-	_pid_throttle.print_gain();
-	_pid_throttle.print_gain();
+	printf("\altitude gain:\n");
+	_pid_altitude.print_gain();
+	_pid_altitude.print_gain();
 }
 
-void Drone::loop()
+void Drone::check_loop_dt()
 {
-	static size_t cycle = 0;
-
-	loop_logic_1();
-
 	update_new_mono_time(&_mono_loop_ts_cur);
 
 	float dt_prev = timespec_to_double(&_mono_loop_ts_cur) - timespec_to_double(&_mono_loop_ts_prev);
@@ -108,23 +71,50 @@ void Drone::loop()
 		dt = timespec_to_double(&_mono_loop_ts_cur) - timespec_to_double(&_mono_loop_ts_prev);
 	}
 	if (unlikely(dt > _loop_dt + 0.0001)) {
-		printf("!!!!!!!!!!loop_dt over, dt:%f ---> %f, cycle:%zu\n", dt_prev, dt, cycle);
+		printf("!!!!!!!!!!loop_dt over, dt:%f ---> %f, cycle:%zu\n", dt_prev, dt, _loop_cycle);
 		exit_program();
 	}
+
+	_loop_cycle++;
+
 	update_new_mono_time(&_mono_loop_ts_prev);
+}
 
-	//printf("%f --> %f\n", dt_prev, dt);
+void Drone::loop()
+{
+	float *angle = _mpu6050.get_angle();
+	float *gyro_rate = _mpu6050.get_gyro_rate();
 
-	set_motor_speed(); // 
+	TRACE_FUNC_DT(dt_mpu6050, _mpu6050.do_mpu6050);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	set_hovering();
+	// update_target();
+
+	update_PRY_pid_out(angle, gyro_rate);
+
+	// float altitude = _hc_sr04.get_altitude();
+	// update_altitude_pid_out(altitude);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	check_loop_dt();
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	set_motor_speed(); 
+
+	log_data();
 
 	// ADD_LOG_SOCKET(dt, "%f", dt);
-	cycle++;
 
 	// dt_socket_flush.update_prev_time();
 	// FLUSH_LOG_SOCKET();
 	// dt_socket_flush.update_cur_time();
 	// dt_socket_flush.update_data();
 }
+
 void Drone::set_hovering()
 {
 	_angle_target[PITCH] = 0.0f;
@@ -191,7 +181,7 @@ void Drone::read_and_update_pid_gain()
         exit_program();
     }
 
-    float f[8];
+    float f[16];
     size_t cnt = 0;
 
     char line[50];
@@ -203,7 +193,7 @@ void Drone::read_and_update_pid_gain()
         char *token = strtok(line, "\t");
            while (token != NULL) {
             f[cnt++] = strtof(token, NULL);
-             if (cnt == 8) {
+             if (cnt == 16) {
                  goto END;
               }
              token = strtok(NULL, "\t");
@@ -213,10 +203,11 @@ void Drone::read_and_update_pid_gain()
 END:
     fclose(file);
 
-     if (cnt != 8) {
+     if (cnt != 16) {
          fprintf(stderr, "pid_meta file is not enough\n");
         exit_program();
     }
+
 
     float PR_angle_gain[3] = { f[0], f[1], f[2] };
 	float PR_angle_iterm_max = f[3];
@@ -224,19 +215,23 @@ END:
     float PR_gyro_gain[3] = { f[4], f[5], f[6] };
 	float PR_gyro_iterm_max = f[7];
 
-    // float Y_gain[3] = { f[0], f[1], f[2] };
-    // float throttle_gain[3] = { f[0], f[1], f[2] };
+    float throttle_altitude_gain[3] = { f[8], f[9], f[10] };
+	float throttle_altitude_iterm_max = f[11];
+
+    float throttle_altitude_rate_gain[3] = { f[12], f[13], f[14] };
+	float throttle_altitude_rate_iterm_max = f[15];
+
 
     for (int i = 0; i < 2; i++) {
         _pid_angle_PRY[i].update_gain(PR_angle_gain, PR_angle_iterm_max);
         _pid_gyro_PRY[i].update_gain(PR_gyro_gain, PR_gyro_iterm_max);
     }
 
-    //  _pid_PRY[2].update_gain(Y_gain);
-    //  _pid_throttle[2].update_gain(throttle_gain);
+	_pid_altitude.update_gain(throttle_altitude_gain, throttle_altitude_iterm_max);
+	_pid_altitude_rate.update_gain(throttle_altitude_rate_gain, throttle_altitude_rate_iterm_max);
 }
 
-void Drone::cascade_drone_pid(Pid* pid_angle, Pid* pid_gyro, float angle, float gyro_rate, float gyro_rate_prev, float* out)
+void Drone::cascade_drone_pid(Pid* pid_angle, Pid* pid_gyro, float angle, float gyro_rate, float* out)
 {
     float out_angle = 0.0f;
     float out_gyro_rate = 0.0f;
@@ -246,25 +241,19 @@ void Drone::cascade_drone_pid(Pid* pid_angle, Pid* pid_gyro, float angle, float 
     pid_angle->calc_pid_derr_per_dt(_angle_target[0], angle, angle_d_err_per_dt, &out_angle);
 
     float rate_target = out_angle;
-	float gyro_d_err_per_dt = (-1) * (gyro_rate - gyro_rate_prev) / _loop_dt;
 
-    pid_gyro->calc_pid_derr_per_dt(rate_target, gyro_rate, gyro_d_err_per_dt, &out_gyro_rate);
+    pid_gyro->calc_pid_no_overshoot(rate_target, gyro_rate, &out_gyro_rate);
 
     *out = out_gyro_rate;
 }
 void Drone::update_PRY_pid_out(float angle_input[], float gyro_rate_input[])
 {
-	static float gyro_rate_input_prev[3] = { 0.0f, };
-
     float out_temp[3] = { 0, };
     int out[3] = {0};
 
-
     for (int i = 0; i < 3; i++) {
-        cascade_drone_pid(&_pid_angle_PRY[i], &_pid_gyro_PRY[i], angle_input[i], gyro_rate_input[i], gyro_rate_input_prev[i], &out_temp[i]);
+        cascade_drone_pid(&_pid_angle_PRY[i], &_pid_gyro_PRY[i], angle_input[i], gyro_rate_input[i], &out_temp[i]);
         out[i] = (int)round(out_temp[i] * 1000);
-
-		gyro_rate_input_prev[i] = gyro_rate_input[i];
     }
 
 	// if (_pid_angle_PRY[0].check_dterm() == 1) {
@@ -280,31 +269,41 @@ void Drone::update_PRY_pid_out(float angle_input[], float gyro_rate_input[])
 	// 	printf("gyro R dterm over\n");
 	// }
 	// printf("angle,\n");
-	// _pid_angle_PRY[0].print_data();
+	//_pid_angle_PRY[0].print_data();
 	// printf("gyro,\n");
-	// _pid_gyro_PRY[0].print_data();
+	//_pid_gyro_PRY[0].print_data();
 
     _pitch = out[PITCH];
     _roll = out[ROLL];
     _yaw = out[YAW];
 }
-void Drone::update_throttle_pid_out(float throttle_input)
+void Drone::update_altitude_pid_out(float altitude_input)
 {
-    float out_temp = 0.0f;
-    int out = 0;
+    float out_altitude = 0.0f;
 
-    _pid_throttle.calc_pid(_throttle_target, throttle_input, &out_temp);
+    _pid_altitude.calc_pid_no_overshoot(_altitude_target, altitude_input, &out_altitude);
 
-    out = (int)round(out_temp * 1000);
+	float altitude_velocity = (altitude_input - _altitude_input_prev) / (_loop_dt * 100);		// cm/s --> m/s
+	float altitude_velocity_target = out_altitude / 100;
 
-    _throttle = out;
+    float out_altitude_velocity = 0.0f;
+
+    _pid_altitude_rate.calc_pid_no_overshoot(altitude_velocity_target, altitude_velocity, &out_altitude_velocity);
+
+	// _pid_altitude.print_data();
+	// _pid_altitude_rate.print_data();
+
+    _throttle = (int)round(out_altitude_velocity * 1000);
+
+	_altitude_input_prev = altitude_input;
 }
 
 void drone_do_once(void *arg)
 {
-	set_rt_deadline(0, 200 * 1000, 1000 * 1000, 1000 * 1000);
-
 	Drone *drone = (Drone*)arg;
+
+	pthread_setschedparam_wrapper(pthread_self(), SCHED_RR, 99);
+	//set_rt_deadline(0, 250 * 1000, 1000 * 1000, 1000 * 1000);
 
 	for (int i = 0; i < 300; i++) {
 		drone->get_mpu6050()->do_mpu6050();

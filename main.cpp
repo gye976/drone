@@ -11,9 +11,11 @@
 
 Drone g_drone(0.002);
 
-DEFINE_THREAD_WITH_INIT(drone, drone_loop, drone_do_once, &g_drone);
+DEFINE_THREAD_WITH_INIT(drone, &g_drone);
 
-DEFINE_THREAD_WITH_INIT(user, user_loop, user_do_once, &g_drone);
+DEFINE_THREAD_WITH_INIT(user, &g_drone);
+
+DEFINE_THREAD_WITH_INIT(hc_sr04, g_drone.get_hc_sr04());
 
 #ifndef NO_SOCKET
 	DEFINE_THREAD(socket, send_socket_loop, send_socket_do_once, &g_log_socket_manager);
@@ -24,11 +26,6 @@ pthread_t g_main_thread_id;
 
 int main() 
 {
-	if (geteuid() != 0) {
-        	fprintf(stderr, "This program requires root privileges.\n");
-        	exit_program();
-	}
-
 	int rt_fd;
 	OPEN_FD(rt_fd, "/proc/sys/kernel/sched_rt_runtime_us", O_RDWR);
 	if (write(rt_fd, "-1", strlen("-1")) == -1) {
@@ -39,7 +36,7 @@ int main()
 	g_main_thread_id = pthread_self();
 	printf("main thread id: %zu\n", g_main_thread_id);
 
-	set_rt_rr(0, 99);
+	sched_setscheduler_wrapper(0, SCHED_RR, 99);
 
 	init_signal();	
 		
@@ -49,6 +46,9 @@ int main()
 	//Mpu6050 *mpu6050 = g_drone.get_mpu6050();
 	
 	g_user_thread.make_thread();
+
+	g_hc_sr04_thread.make_thread();	
+
 	g_drone_thread.make_thread();	
 
 #ifndef NO_SOCKET
@@ -64,10 +64,10 @@ int main()
 
 	extern pthread_mutex_t g_exit_mutex;
 	extern pthread_cond_t g_exit_cond;
-	extern bool g_main_thread_cond_flag;
+	extern bool g_non_main_thread_request_flag;
 
 	pthread_mutex_lock(&g_exit_mutex);
-	while (g_main_thread_cond_flag == 0) {
+	while (g_non_main_thread_request_flag == 0) {
         pthread_cond_wait(&g_exit_cond, &g_exit_mutex);
     }
 	pthread_mutex_unlock(&g_exit_mutex);
