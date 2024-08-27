@@ -142,11 +142,6 @@ MakeThread g_##name##_thread("gye-"#name, __##name##_thread_func, arg); \
 void (__##name##_thread_loop)(void *__arg) \
 { \
 	while (1) { \
-		if (unlikely(g_##name##_thread.check_stop_flag() == 1)) { \
-			printf("!!!!!!!!!!!!!!!!!!!!!"#name"_thread stop\n"); \
-			g_##name##_thread.stop_thread_by_that_thread(); \
-		} \
-\
 		name##_loop(__arg); \
 	} \
 }
@@ -178,6 +173,8 @@ void *(__##name##_thread_func)(void *__arg) \
 } 
 
 MakeThread *find_make_thread(pthread_t thread);
+
+void cancel_all_threads();
 void stop_all_threads();
 void wait_all_threads_success_exit();
 

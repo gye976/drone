@@ -80,10 +80,74 @@ void cmd_show_pid(Drone *drone)
 {
 	drone->print_parameter();
 }
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <termios.h>
+#include <fcntl.h>
+
+int kbhit(void) {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    if(ch != EOF) {
+        ungetc(ch, stdin);
+        return 1;
+    }
+
+    return 0;
+}
+
+#define THROTTLE_UNIT	1000
 void cmd_throttle(Drone *drone)
 {
-	// pause_user(drone);
+	printf("enter throttle mode\n");
+	int t = 0;
+	char buf[20];
 
+    while (1) {
+        if (kbhit()) {
+            char ch = getchar();
+
+			switch (ch) {
+			case 's':
+				scanf("%s", buf);
+				t = atoi(buf);
+				break;
+			case '8': //up
+				t += THROTTLE_UNIT;
+				break;
+			case '2': //donw
+				t -= THROTTLE_UNIT;
+				break;
+			case '0':
+				printf("exit throttle mode\n");
+				return;
+			default:
+				break;
+			}
+        }
+
+		printf("throttle: %d\n", t);
+
+		drone->set_throttle(t);
+    }
+}
+void cmd_set_throttle(Drone *drone)
+{
 	char buf[15];
 	if (scan_str(buf) == -1) {
 		printf("arg err\n");
@@ -94,16 +158,52 @@ void cmd_throttle(Drone *drone)
 	if (t == 0) {
 		printf("arg err\n");
 		return;
-		// goto ERR;
 	}
-	printf("throttle: %d\n", t);
+	printf("set throttle: %d\n", t);
 
 	drone->set_throttle(t);
-
-// ERR:
-	// resume_user(drone);
 }
 
+void cmd_up_altitude(Drone *drone)
+{
+	char buf[15];
+	if (scan_str(buf) == -1) {
+		printf("arg err\n");
+		return;
+	}
+
+	int altitude = atoi(buf);
+	if (altitude == 0) {
+		printf("arg err\n");
+		return;
+	}
+	printf("up altitude: %d\n", altitude);
+
+	drone->up_altitude(altitude);
+}
+void cmd_down_altitude(Drone *drone)
+{
+	char buf[15];
+	if (scan_str(buf) == -1) {
+		printf("arg err\n");
+		return;
+	}
+
+	int altitude = atoi(buf);
+	if (altitude == 0) {
+		printf("arg err\n");
+		return;
+	}
+	printf("down altitude: %d\n", altitude);
+
+	drone->down_altitude(altitude);
+}
+void cmd_update_altitude_target(Drone *drone)
+{
+	printf("update altitude target\n");
+
+	drone->update_altitude_target();
+}
 // void cmd_pid(Drone *drone)
 // {
 // 	// pause_user(drone);
@@ -177,7 +277,11 @@ void user_do_once(void *drone)
 	pthread_setschedparam_wrapper(pthread_self(), SCHED_RR, 50);
 
 	INIT_CMD("show", show_pid);
+	INIT_CMD("up", up_altitude);
+	INIT_CMD("down", down_altitude);
+	INIT_CMD("h", update_altitude_target);
 	INIT_CMD("t", throttle);
+	INIT_CMD("s", set_throttle);
 	//INIT_CMD("pid", pid);
 }
 

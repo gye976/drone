@@ -28,7 +28,7 @@
 
 #define RADIANS_TO_DEGREES 		((float)(180/3.14159))
 
-#define ACC_FS_SENSITIVITY		8192.0f 
+#define ACC_FS_SENSITIVITY		4096.0f 
 #define GYRO_FS_SENSITIVITY		65.536f
 
 #define ALPHA                   0.96f

@@ -1,8 +1,6 @@
 #ifndef HC_SR04_H
 #define HC_SR04_H
 
-#define A 0.1
-
 class HcSr04 
 {
 	friend int exit_HcSr04(HcSr04 *hc_sr04);
@@ -16,7 +14,8 @@ public:
 	}
 	float measure_distance();
 	void update_altitude();
-	
+	void init_altitude(int num);
+	int check_edge(int event_type, struct timespec *timeout);
 private:
 	struct gpiod_chip *_chip;
 	struct gpiod_line *_trig_line, *_echo_line;

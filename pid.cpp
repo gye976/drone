@@ -192,7 +192,7 @@ bool Pid::check_dterm()
 }
 void Pid::print_gain()
 {
-	printf("%f, %f, %f, iterm_max:%f\n", _gain[0], _gain[1], _gain[2], _iterm_max);
+	printf("%f, %f, %f, iterm(%f, %f), _iterm_range:%f\n", _gain[0], _gain[1], _gain[2], _term[I], _iterm_max, _iterm_range);
 }
 void Pid::calc_pid_derr_per_dt(float target, float input, float d_error_per_dt, float *out)
 {
@@ -204,11 +204,15 @@ void Pid::calc_pid_derr_per_dt(float target, float input, float d_error_per_dt, 
 	_term[D] = _gain[D] * d_error_per_dt; // to do: /dt?
 
 	if (_term[I] > _iterm_max) {
-		printf("iterm is max");
+		//printf("iterm is max");
 		_term[I] = _iterm_max;
 	} else if (_term[I] < -_iterm_max) {
-		printf("iterm is min");
+		//printf("iterm is min");
 		_term[I] = -_iterm_max;
+	}
+
+	if (fabs(_term[I]) > _iterm_range) {
+		_iterm_range = fabs(_term[I]);
 	}
 
 	(*out) = _term[P] + _term[I] + _term[D];
@@ -230,4 +234,9 @@ void Pid::calc_pid_no_overshoot(float target, float input, float *out)
 	float d_error_per_dt = d_error / _dt;
 
 	calc_pid_derr_per_dt(target, input, d_error_per_dt, out);
+}
+
+void Pid::set_iterm(float iterm)
+{
+	_term[I] = iterm;
 }

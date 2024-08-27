@@ -14,17 +14,20 @@ class Pid
 public:
 	Pid(float dt);
 	
-	inline void update_gain(float gain[], float iterm_max)
+	inline void update_gain(float gain[], float iterm_default, float iterm_max)
 	{
 		for (int i = 0; i < 3; i++) {
 			_gain[i] = gain[i];
 		}
 
+		_term[I] = iterm_default;
 		_iterm_max = iterm_max;
 	}
 	bool check_dterm();
 	void print_gain();
 	void print_data();
+
+	void set_iterm(float iterm);
 
 	void calc_pid(float target, float input, float *out);
 	void calc_pid_no_overshoot(float target, float input, float *out);
@@ -34,6 +37,9 @@ private:
 	float _iterm_max = 0.0f;
 	float _term[3] = { 0, };
 	 		// PID
+
+
+	float _iterm_range = 0.0f;
 
 	float _input_prev = 0.0f;
 

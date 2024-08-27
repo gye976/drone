@@ -1,9 +1,9 @@
 #ifndef PWM_H
 #define PWM_H
 
-#define PWM_PERIOD	20 * 1000 * 1000 
+#define PWM_PERIOD	20 * 1000 * 1000  // 20ms
 
-#define PWM_MIN 	1 * 1000 * 1000
+#define PWM_MIN 	1 * 1000 * 1000 // 1ms ~ 2ms
 #define PWM_MAX 	2 * 1000 * 1000
 
 class Pwm 

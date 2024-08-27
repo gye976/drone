@@ -15,7 +15,7 @@ DEFINE_THREAD_WITH_INIT(drone, &g_drone);
 
 DEFINE_THREAD_WITH_INIT(user, &g_drone);
 
-DEFINE_THREAD_WITH_INIT(hc_sr04, g_drone.get_hc_sr04());
+//DEFINE_THREAD_WITH_INIT(hc_sr04, g_drone.get_hc_sr04());
 
 #ifndef NO_SOCKET
 	DEFINE_THREAD(socket, send_socket_loop, send_socket_do_once, &g_log_socket_manager);
@@ -47,7 +47,7 @@ int main()
 	
 	g_user_thread.make_thread();
 
-	g_hc_sr04_thread.make_thread();	
+	//g_hc_sr04_thread.make_thread();	
 
 	g_drone_thread.make_thread();	
 

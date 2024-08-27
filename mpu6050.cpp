@@ -61,15 +61,15 @@ Mpu6050::Mpu6050(float dt)
         exit_program();
     }
 
-    // Set Gyroscope sensitivity: ±500°/s (Configuration 0)
-    char gyro_config[2] = {GYRO_CONFIG, 0x01}; 
+    // Set Gyroscope sensitivity: ±1000°/s (Configuration 0)
+    char gyro_config[2] = {GYRO_CONFIG, 0x02}; 
     if (write(_i2c_fd, gyro_config, 2) != 2) {
         perror("Failed to set gyroscope configuration");
         exit_program();
     }
 
-    // Set Accelerometer sensitivity: ±4g (Configuration 0)
-    char accel_config[2] = {ACCEL_CONFIG, 0x01}; 
+    // Set Accelerometer sensitivity: ±8g (Configuration 0)
+    char accel_config[2] = {ACCEL_CONFIG, 0x02}; 
     if (write(_i2c_fd, accel_config, 2) != 2) {
         perror("Failed to set accelerometer configuration");
         exit_program();

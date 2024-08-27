@@ -2,6 +2,7 @@
     #define _GNU_SOURCE
 #endif
 
+#include <math.h>
 #include <stdatomic.h>
 #include <signal.h>
 #include <sched.h>
@@ -55,7 +56,7 @@ void __exit_program()
 
 		pthread_mutex_lock(&g_exit_mutex);
 		
-		if (g_non_main_thread_request_flag == 1) {
+		if (g_non_main_thread_request_flag == 1 || g_exit_invoked_flag == 1) {
 			pthread_mutex_unlock(&g_exit_mutex);
 			goto SLEEP_NON_MAIN_THREAD; 
 		}
@@ -76,11 +77,14 @@ void __exit_program()
 
  	printf("main thread requested exit.\n");
 
-	printf("stop_all_threads...\n");
-	stop_all_threads();
+	printf("cancel_all_threads...\n");
 
-	printf("wait_all_threads_success_exit...\n");
-	wait_all_threads_success_exit();
+	cancel_all_threads();
+	// printf("stop_all_threads...\n");
+	// stop_all_threads();
+
+	// printf("wait_all_threads_success_exit...\n");
+	// wait_all_threads_success_exit();
 
 	printf("\n###exit_program entry\n");
 	printf("###exit class num:%d\n", g_exit_func_global_num);
@@ -112,8 +116,18 @@ void init_signal()
     s_sa.sa_flags = 0;
 
     if (sigaction(SIGINT, &s_sa, NULL) == -1) {
+		perror("init_signal\n");
         exit_program();
     }  
+
+	// struct sigaction sa_usr1;
+	// sa_usr1.sa_handler = sigusr1_handler;
+    // sigemptyset(&sa_usr1.sa_mask);
+    // sa_usr1.sa_flags = 0;
+    // if (sigaction(SIGUSR1, &sa_usr1, NULL)) {
+	// 	perror("init_signal\n");
+    //     exit_program();
+    // }  
 } 
 
 void set_rtprio_limit() {
@@ -218,6 +232,14 @@ void stop_all_threads()
 {
 	for (int i = 0; i < g_threads_num; i++) {
 		g_threads_list[i]->stop_thread_by_main_thread();
+	}
+}
+void cancel_all_threads()
+{
+	for (int i = 0; i < g_threads_num; i++) {
+		if (pthread_cancel(g_threads_list[i]->get_thread_id()) != 0) {
+			perror("cancel_all_threads");
+		}
 	}
 }
 void wait_all_threads_success_exit()

@@ -96,22 +96,32 @@ public:
     // }
     inline void set_throttle(int t)
     {
-        _throttle = t;
-       // _pid.set_limit(t);
+        if (t < 0 || t > 800000) {
+            printf("t range err\n");
+            return;
+        }
+
+        _throttle_basic = t;
     }   
-    // inline void toggle_mpu6050_f()
-    // {
-    //     _pr_mpu6050_f = !_pr_mpu6050_f;
-    // }
-    // inline void toggle_pid_f()
-    // {
-    //     _pr_pid_f = !_pr_pid_f;
-    // }
-    // inline void toggle_pwm_f()
-    // {
-    //     _pr_pwm_f = !_pr_pwm_f;
-    // }
-        
+    inline void up_altitude(int altitude)
+    {
+        _altitude_target += altitude;
+    }   
+    inline void down_altitude(int altitude)
+    {
+        _altitude_target -= altitude;
+    }  
+    inline void update_altitude_target()
+    {
+        float altitude = _hc_sr04.get_altitude();
+        _altitude_target = altitude;
+    }  
+    inline void set_iterm_default()
+    {
+       // _pid_gyro_PRY[0].set_iterm(-13.0);
+        //_pid_gyro_PRY[1].set_iterm(10.0);
+    }  
+
     void loop();
     void check_loop_dt();
     void print_parameter();
@@ -119,9 +129,11 @@ public:
 
     void read_and_update_pid_gain();
     void cascade_drone_pid(Pid* pid_angle, Pid* pid_gyro, float angle, float gyro_rate, float* out);
-    void update_PRY_pid_out(float angle_input[], float gyro_rate_input[]);
+    void update_PR_pid_out(float angle_input[], float gyro_rate_input[]);
+    void update_Y_pid_out(float gyro_rate_input);
     void update_altitude_pid_out(float altitude_input);
-    
+    void aa();
+
 private:    
     void print_pid_gain();
 	void set_motor_speed();
@@ -139,7 +151,7 @@ private:
     Pid _pid_gyro_PRY[3];
 
     Pid _pid_altitude;
-    Pid _pid_altitude_rate;
+   // Pid _pid_altitude_velocity;
 
 
     // pthread_mutex_t _mutex;
@@ -155,9 +167,12 @@ private:
 
     float _altitude_target; //= 12.8f; //default
     float _altitude_input_prev; // = 12.8f; 
+    
+    float _altitude_velocity_prev = 0.0f;
 
     int _pitch = 0, _roll = 0, _yaw = 0;
     int _throttle = 0;
+    int _throttle_basic = 0;
 };
 
 void drone_do_once(void *arg);
